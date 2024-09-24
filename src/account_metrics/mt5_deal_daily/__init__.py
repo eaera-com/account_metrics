@@ -1,0 +1,1 @@
+from .mt5_deal_daily_data_model import MT5DealDaily
