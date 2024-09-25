@@ -1,5 +1,5 @@
-from  typing import Annotated
-from src.account_metrics.model import MetricData
+from typing import Annotated
+from ..metric_model import MetricData
 
 class AccountSymbolMetricByDeal(MetricData):
     server: Annotated[str, "key", "groupby"] = ""

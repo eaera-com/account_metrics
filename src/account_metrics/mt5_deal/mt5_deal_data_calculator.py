@@ -1,7 +1,7 @@
 from typing import Dict, Type
 import pandas as pd
 
-from src.account_metrics.model import MetricCalculator, MetricData
+from account_metrics.metric_model import MetricData, MetricCalculator
 
 
 # NOT YET USED. NEED TO BE INCOPORATED INTO DATA MODEL AND OTHER QUERY FROM CLICKHOUSE

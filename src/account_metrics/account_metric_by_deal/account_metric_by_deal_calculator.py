@@ -2,12 +2,11 @@ from typing import Annotated, Dict, Tuple, Type
 import datetime
 import pandas as pd
 
-from src.account_metrics.model import MetricCalculator, MetricData
-import MT5Manager
+from account_metrics.metric_model import MetricData,MetricCalculator
 from .account_metric_by_deal_data_model import AccountMetricByDeal
-from src.account_metrics.metrics.metric_utils import apply_groupby_mapping_of_metric_to_data
+from account_metrics.metric_utils import apply_groupby_mapping_of_metric_to_data
+from account_metrics.mt_deal_enum import EnDealAction, EnDealEntry
 
-# TODO: Build translator of these MT5Manager.MTDeal.EnDealAction.DEAL_BUY to EnDealAction.DEAL_BUY
 class AccountMetricByDealCalculator(MetricCalculator):
 
     input_class = ["Deal","History"]
@@ -53,6 +52,8 @@ class AccountMetricByDealCalculator(MetricCalculator):
     def calculate_row(cls,deal:pd.Series, prev:pd.Series, history:pd.DataFrame) ->AccountMetricByDeal:
         metric = cls.output_metric()
         comment = deal["Comment"] if isinstance(deal["Comment"], str) else deal["Comment"].decode()
+        action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
+        entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])
         
         yesterday_history = history[
             (history["Date"] == pd.to_datetime(deal["Time"], unit="s").date() - datetime.timedelta(days=1))
@@ -60,7 +61,7 @@ class AccountMetricByDealCalculator(MetricCalculator):
         ]
         metric.initial_deposit = (
             deal["Profit"]
-            if deal["Action"] == MT5Manager.MTDeal.EnDealAction.DEAL_BALANCE and comment.startswith("initialize") 
+            if action == EnDealAction.DEAL_BALANCE and comment.startswith("initialize") 
             else prev["initial_deposit"]
         )
         metric.program_id = (
@@ -84,12 +85,12 @@ class AccountMetricByDealCalculator(MetricCalculator):
         metric.deal_id = deal["Deal"]
         metric.deal_profit = (
             deal["Profit"]
-            if deal["Action"]
+            if action
             not in [
-                MT5Manager.MTDeal.EnDealAction.DEAL_BALANCE,
-                MT5Manager.MTDeal.EnDealAction.DEAL_CREDIT,
-                MT5Manager.MTDeal.EnDealAction.DEAL_CORRECTION,
-                MT5Manager.MTDeal.EnDealAction.DEAL_SO_COMPENSATION,
+                EnDealAction.DEAL_BALANCE,
+                EnDealAction.DEAL_CREDIT,
+                EnDealAction.DEAL_CORRECTION,
+                EnDealAction.DEAL_SO_COMPENSATION,
             ]
             else 0
         )
@@ -100,7 +101,7 @@ class AccountMetricByDealCalculator(MetricCalculator):
         metric.max_balance_equity = max(yesterday_history["Balance"], yesterday_history["ProfitEquity"])
         metric.net_deposit = prev["net_deposit"] + (
             deal["Profit"]
-            if deal["Action"] == MT5Manager.MTDeal.EnDealAction.DEAL_BALANCE and "initialize" not in comment
+            if action == EnDealAction.DEAL_BALANCE and "initialize" not in comment
             else 0.0
         )
         metric.yesterday_net_deposit = (
@@ -110,12 +111,12 @@ class AccountMetricByDealCalculator(MetricCalculator):
         metric.net_profit = deal["Profit"] + deal["Commission"] + deal["Storage"]
         metric.profit_loss = prev["profit_loss"] + (
             metric.net_profit
-            if deal["Action"]
+            if action
             not in [
-                MT5Manager.MTDeal.EnDealAction.DEAL_BALANCE,
-                MT5Manager.MTDeal.EnDealAction.DEAL_CREDIT,
-                MT5Manager.MTDeal.EnDealAction.DEAL_CORRECTION,
-                MT5Manager.MTDeal.EnDealAction.DEAL_SO_COMPENSATION,
+                EnDealAction.DEAL_BALANCE,
+                EnDealAction.DEAL_CREDIT,
+                EnDealAction.DEAL_CORRECTION,
+                EnDealAction.DEAL_SO_COMPENSATION,
             ]
             else 0
         )
@@ -126,8 +127,8 @@ class AccountMetricByDealCalculator(MetricCalculator):
         metric.daily_profit_loss = metric.profit_loss - metric.yesterday_net_profit_loss
         metric.last_open_trade_timestamp = (
             deal["Time"]
-            if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_BUY, MT5Manager.MTDeal.EnDealAction.DEAL_SELL]
-            and deal["Entry"] == MT5Manager.MTDeal.EnDealEntry.ENTRY_IN
+            if action in [EnDealAction.DEAL_BUY, EnDealAction.DEAL_SELL]
+            and entry == EnDealEntry.ENTRY_IN
             else prev["last_open_trade_timestamp"]
         )
         metric.trading_days = prev["trading_days"] + (
@@ -167,65 +168,65 @@ class AccountMetricByDealCalculator(MetricCalculator):
         )
         metric.total_deposit = prev["total_deposit"] + (
             deal["Profit"]
-            if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_BALANCE]
+            if action in [EnDealAction.DEAL_BALANCE]
             and deal["Profit"] > 0
             and "initialize" not in comment
             else 0.0
         )
         metric.total_withdrawal = prev["total_withdrawal"] + (
-            deal["Profit"] if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_BALANCE] and deal["Profit"] < 0 else 0
+            deal["Profit"] if action in [EnDealAction.DEAL_BALANCE] and deal["Profit"] < 0 else 0
         )
-        metric.count_trades = prev["count_trades"] + (1 if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_BUY, MT5Manager.MTDeal.EnDealAction.DEAL_SELL] and deal["Entry"] in [MT5Manager.MTDeal.EnDealEntry.ENTRY_IN] else 0)
-        metric.count_long_trades = prev["count_long_trades"] + (1 if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_BUY] and deal["Entry"] in [MT5Manager.MTDeal.EnDealEntry.ENTRY_IN] else 0)
-        metric.count_short_trades = prev["count_short_trades"] + (1 if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_SELL] and deal["Entry"] in [MT5Manager.MTDeal.EnDealEntry.ENTRY_IN] else 0)
+        metric.count_trades = prev["count_trades"] + (1 if action in [EnDealAction.DEAL_BUY, EnDealAction.DEAL_SELL] and entry in [EnDealEntry.ENTRY_IN] else 0)
+        metric.count_long_trades = prev["count_long_trades"] + (1 if action in [EnDealAction.DEAL_BUY] and entry in [EnDealEntry.ENTRY_IN] else 0)
+        metric.count_short_trades = prev["count_short_trades"] + (1 if action in [EnDealAction.DEAL_SELL] and entry in [EnDealEntry.ENTRY_IN] else 0)
         metric.profit_long_trades = prev["profit_long_trades"] + (
             deal["Profit"]
-            if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_BUY]
-            and deal["Entry"]
-            in [MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_INOUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT_BY]
+            if action in [EnDealAction.DEAL_BUY]
+            and entry
+            in [EnDealEntry.ENTRY_OUT, EnDealEntry.ENTRY_INOUT, EnDealEntry.ENTRY_OUT_BY]
             else 0.0
         )
         metric.profit_short_trades = prev["profit_short_trades"] + (
             deal["Profit"]
-            if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_SELL]
-            and deal["Entry"]
-            in [MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_INOUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT_BY]
+            if action in [EnDealAction.DEAL_SELL]
+            and entry
+            in [EnDealEntry.ENTRY_OUT, EnDealEntry.ENTRY_INOUT, EnDealEntry.ENTRY_OUT_BY]
             else 0.0
         )
         metric.count_profit_trades = prev["count_profit_trades"] + (
             1
-            if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_BUY, MT5Manager.MTDeal.EnDealAction.DEAL_SELL]
-            and deal["Entry"]
-            in [MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_INOUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT_BY]
+            if action in [EnDealAction.DEAL_BUY, EnDealAction.DEAL_SELL]
+            and entry
+            in [EnDealEntry.ENTRY_OUT, EnDealEntry.ENTRY_INOUT, EnDealEntry.ENTRY_OUT_BY]
             and metric.net_profit >= 0
             else 0
         )
         metric.count_loss_trades = prev["count_loss_trades"] + (
             1
-            if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_BUY, MT5Manager.MTDeal.EnDealAction.DEAL_SELL]
-            and deal["Entry"]
-            in [MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_INOUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT_BY]
+            if action in [EnDealAction.DEAL_BUY, EnDealAction.DEAL_SELL]
+            and entry
+            in [EnDealEntry.ENTRY_OUT, EnDealEntry.ENTRY_INOUT, EnDealEntry.ENTRY_OUT_BY]
             and metric.net_profit < 0
             else 0
         )
         metric.gross_profit = prev["gross_profit"] + (
             metric.net_profit
-            if deal["Action"]
+            if action
             not in [
-                MT5Manager.MTDeal.EnDealAction.DEAL_BALANCE,
-                MT5Manager.MTDeal.EnDealAction.DEAL_CREDIT,
-                MT5Manager.MTDeal.EnDealAction.DEAL_SO_COMPENSATION,
+                EnDealAction.DEAL_BALANCE,
+                EnDealAction.DEAL_CREDIT,
+                EnDealAction.DEAL_SO_COMPENSATION,
             ]
             and metric.net_profit > 0
             else 0.0
         )
         metric.gross_loss = prev["gross_loss"] + (
             metric.net_profit
-            if deal["Action"]
+            if action
             not in [
-                MT5Manager.MTDeal.EnDealAction.DEAL_BALANCE,
-                MT5Manager.MTDeal.EnDealAction.DEAL_CREDIT,
-                MT5Manager.MTDeal.EnDealAction.DEAL_SO_COMPENSATION,
+                EnDealAction.DEAL_BALANCE,
+                EnDealAction.DEAL_CREDIT,
+                EnDealAction.DEAL_SO_COMPENSATION,
             ]
             and metric.net_profit < 0
             else 0.0
@@ -234,33 +235,33 @@ class AccountMetricByDealCalculator(MetricCalculator):
         metric.losses_ratio = metric.count_loss_trades / metric.count_trades if metric.count_trades > 0 else 0.0
         metric.total_volume = prev["total_volume"] + (
             deal["Volume"]
-            if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_BUY, MT5Manager.MTDeal.EnDealAction.DEAL_SELL]
-            and deal["Entry"]
-            in [MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_INOUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT_BY]
+            if action in [EnDealAction.DEAL_BUY, EnDealAction.DEAL_SELL]
+            and entry
+            in [EnDealEntry.ENTRY_OUT, EnDealEntry.ENTRY_INOUT, EnDealEntry.ENTRY_OUT_BY]
             else 0.0
         )
         metric.best_trade = (
             metric.net_profit
             if metric.net_profit > prev["best_trade"]
-            and deal["Action"]
+            and action
             in [
-                MT5Manager.MTDeal.EnDealAction.DEAL_BUY,
-                MT5Manager.MTDeal.EnDealAction.DEAL_SELL,
+                EnDealAction.DEAL_BUY,
+                EnDealAction.DEAL_SELL,
             ]
-            and deal["Entry"]
-            in [MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_INOUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT_BY]
+            and entry
+            in [EnDealEntry.ENTRY_OUT, EnDealEntry.ENTRY_INOUT, EnDealEntry.ENTRY_OUT_BY]
             else prev["best_trade"]
         )
         metric.worst_trade = (
             metric.net_profit
             if metric.net_profit < prev["worst_trade"]
-            and deal["Action"]
+            and action
             in [
-                MT5Manager.MTDeal.EnDealAction.DEAL_BUY,
-                MT5Manager.MTDeal.EnDealAction.DEAL_SELL,
+                EnDealAction.DEAL_BUY,
+                EnDealAction.DEAL_SELL,
             ]
-            and deal["Entry"]
-            in [MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_INOUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT_BY]
+            and entry
+            in [EnDealEntry.ENTRY_OUT, EnDealEntry.ENTRY_INOUT, EnDealEntry.ENTRY_OUT_BY]
             else prev["worst_trade"]
         )
         metric.average_win = metric.gross_profit / metric.count_profit_trades if metric.count_profit_trades > 0 else 0.0

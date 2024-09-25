@@ -1,6 +1,6 @@
 from typing import List, Annotated
 import datetime
-from src.account_metrics.model import MetricData
+from account_metrics.metric_model import MetricData
 
 # MT5 History Deal
 # TODO: INCOPORATED INTO DATA MODEL AND OTHER QUERY FROM CLICKHOUSE (use same format for all data models)

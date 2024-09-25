@@ -1,7 +1,7 @@
 import datetime
 
 from  typing import Annotated
-from src.account_metrics.model import MetricData
+from ..metric_model import MetricData
 
 class AccountMetricDaily(MetricData):
     server: Annotated[str, "key", "groupby"] = ""

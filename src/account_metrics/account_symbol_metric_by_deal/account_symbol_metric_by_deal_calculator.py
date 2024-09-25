@@ -1,12 +1,11 @@
 from typing import Dict, Tuple, Annotated,Type
 import pandas as pd
 
-from src.account_metrics.model import MetricCalculator, MetricData
+from account_metrics.metric_model import MetricData, MetricCalculator
 from .account_symbol_metric_by_deal_data_model import AccountSymbolMetricByDeal
-import MT5Manager
-from src.account_metrics.metrics.metric_utils import apply_groupby_mapping_of_metric_to_data
+from account_metrics.metric_utils import apply_groupby_mapping_of_metric_to_data
+from account_metrics.mt_deal_enum import EnDealAction, EnDealEntry
 
-# TODO: Build translator of these MT5Manager.MTDeal.EnDealAction.DEAL_BUY to EnDealAction.DEAL_BUY
 class AccountSymbolMetricByDealCalculator(MetricCalculator):
         
     input_class = ["Deal"]
@@ -52,15 +51,17 @@ class AccountSymbolMetricByDealCalculator(MetricCalculator):
     @classmethod
     def calculate_row(cls,deal:pd.Series, prev:pd.Series) -> AccountSymbolMetricByDeal:
         metric = cls.output_metric()
+        action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
+        entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])
 
         metric.server = deal["server"]
         metric.login = deal["Login"]
         metric.deal_id = deal["Deal"]
         metric.deal_profit = (
             deal["Profit"]
-            if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_BUY, MT5Manager.MTDeal.EnDealAction.DEAL_SELL]
-            and deal["Entry"]
-            in [MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_INOUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT_BY]
+            if action in [EnDealAction.DEAL_BUY, EnDealAction.DEAL_SELL]
+            and entry
+            in [EnDealEntry.ENTRY_OUT, EnDealEntry.ENTRY_INOUT, EnDealEntry.ENTRY_OUT_BY]
             else 0.0
         )
         metric.timestamp_server = deal["Time"]
@@ -68,18 +69,18 @@ class AccountSymbolMetricByDealCalculator(MetricCalculator):
         metric.symbol = deal["Symbol"]
         metric.total_profit = prev["total_profit"] + (
             deal["Profit"]
-            if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_BUY, MT5Manager.MTDeal.EnDealAction.DEAL_SELL]
-            and deal["Entry"]
-            in [MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_INOUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT_BY]
+            if action in [EnDealAction.DEAL_BUY, EnDealAction.DEAL_SELL]
+            and entry
+            in [EnDealEntry.ENTRY_OUT, EnDealEntry.ENTRY_INOUT, EnDealEntry.ENTRY_OUT_BY]
             else 0.0
         )
         metric.total_commission = prev["total_commission"] + deal["Commission"]
         metric.total_storage = prev["total_storage"] + deal["Storage"]
         metric.total_trades = prev["total_trades"] + (
             1
-            if deal["Action"] in [MT5Manager.MTDeal.EnDealAction.DEAL_BUY, MT5Manager.MTDeal.EnDealAction.DEAL_SELL]
-            and deal["Entry"]
-            in [MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_INOUT, MT5Manager.MTDeal.EnDealEntry.ENTRY_OUT_BY]
+            if action in [EnDealAction.DEAL_BUY, EnDealAction.DEAL_SELL]
+            and entry
+            in [EnDealEntry.ENTRY_OUT, EnDealEntry.ENTRY_INOUT, EnDealEntry.ENTRY_OUT_BY]
             else 0
         )
 

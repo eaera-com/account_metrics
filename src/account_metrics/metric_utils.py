@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import Type, Dict
 
-from src.account_metrics.model import MetricData
+from account_metrics.metric_model import MetricData
 #  ------------------------------------------------- Helper function for metrics --------------------------------------------
 
 # (MetricData.Meta.groupby) -> metric_row (1:1 mapping)

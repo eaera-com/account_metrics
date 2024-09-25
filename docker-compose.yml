@@ -1,0 +1,9 @@
+---
+version: "3.4"
+
+services:
+  account_metrics:
+    image: account_metrics
+    build:
+      context: .
+      dockerfile: ./Dockerfile

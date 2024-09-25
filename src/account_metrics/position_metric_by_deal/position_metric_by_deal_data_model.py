@@ -1,5 +1,5 @@
 from  typing import Annotated
-from src.account_metrics.model import MetricData
+from account_metrics.metric_model import MetricData
 
 class PositionMetricByDeal(MetricData):
     server: Annotated[str, "key", "groupby"] = ""

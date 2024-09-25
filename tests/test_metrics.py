@@ -1,12 +1,12 @@
 import pandas as pd
 
-from src.account_metrics.mt5_deal import MT5Deal
-from src.account_metrics.mt5_deal_daily import MT5DealDaily
-from src.account_metrics.account_metric_by_day import AccountMetricDailyCalculator, AccountMetricDaily
-from src.account_metrics.account_metric_by_deal import AccountMetricByDealCalculator, AccountMetricByDeal
-from src.account_metrics.account_symbol_metric_by_deal import AccountSymbolMetricByDealCalculator, AccountSymbolMetricByDeal
-from src.account_metrics.position_metric_by_deal import PositionMetricByDealCalculator, PositionMetricByDeal
-from conftest import extract_type_mapping, retrieve_test_data, setup_string_column_type, strip_quotes_from_string_columns, TEST_DATAFRAME_PATH, get_metric_from_csv
+from account_metrics.mt5_deal import MT5Deal
+from account_metrics.mt5_deal_daily import MT5DealDaily
+from account_metrics.account_metric_by_day import AccountMetricDailyCalculator, AccountMetricDaily
+from account_metrics.account_metric_by_deal import AccountMetricByDealCalculator, AccountMetricByDeal
+from account_metrics.account_symbol_metric_by_deal import AccountSymbolMetricByDealCalculator, AccountSymbolMetricByDeal
+from account_metrics.position_metric_by_deal import PositionMetricByDealCalculator, PositionMetricByDeal
+from tests.conftest import extract_type_mapping, setup_string_column_type, strip_quotes_from_string_columns, TEST_DATAFRAME_PATH, get_metric_from_csv
 
 def get_deal_and_history():
     data = {"Deal": get_metric_from_csv(MT5Deal,TEST_DATAFRAME_PATH[MT5Deal]),
@@ -86,7 +86,7 @@ def test_account_metric_by_day_calculation_2():
 
 def test_account_metric_by_deal_calculation():
     data = get_deal_and_history()
-    current_metrics = {AccountMetricDaily: pd.DataFrame.empty}
+    current_metrics = {AccountMetricByDeal: pd.DataFrame.empty}
     calculated_df = AccountMetricByDealCalculator().calculate(data, current_metrics)
     calculated_df = setup_string_column_type(calculated_df,AccountMetricByDeal)
         
