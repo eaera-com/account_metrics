@@ -1,0 +1,24 @@
+push:
+  branches:
+    main:
+      runner: DockerRunner
+      test:
+        - name: unittest
+          service_name: runner-test-1
+          template: docker-compose.yml
+          result_attachments:
+            - name: report
+              files:
+                - report.html
+pull_request:
+  branches:
+    main:
+      runner: DockerRunner
+      test:
+        - name: unittest
+          service_name: runner-test-1
+          template: docker-compose.yml
+          result_attachments:
+            - name: report
+              files:
+                - report.html

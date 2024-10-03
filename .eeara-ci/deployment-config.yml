@@ -1,0 +1,6 @@
+# Example deployment-config.yml
+dev:
+  enable: true
+  build:
+    - tags:
+      - dev.${{ build.commit_sha }}
