@@ -1,24 +1,19 @@
+default: &default
+  runner: DockerRunner
+  tests:
+    - name: account-metrics-test
+      template: docker-compose.yml
+      service_name: account-metrics
+      result_attachments:
+        - name: report
+          type: zip
+          files:
+            - report.html
 push:
   branches:
     main:
-      runner: DockerRunner
-      test:
-        - name: unittest
-          service_name: runner-test-1
-          template: docker-compose.yml
-          result_attachments:
-            - name: report
-              files:
-                - report.html
+      <<: *default
 pull_request:
   branches:
     main:
-      runner: DockerRunner
-      test:
-        - name: unittest
-          service_name: runner-test-1
-          template: docker-compose.yml
-          result_attachments:
-            - name: report
-              files:
-                - report.html
+      <<: *default

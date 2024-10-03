@@ -9,7 +9,10 @@ RUN pip install poetry
 
 RUN poetry install --only main --no-interaction --no-ansi --no-root
 
+# Set PYTHONPATH to include the src directory
+ENV PYTHONPATH=/app/src
+
 WORKDIR /app
 COPY . /app
 
-CMD ["poetry", "run", "python", "-m", "pytest"]
+CMD ["poetry", "run", "pytest"]
