@@ -6,7 +6,7 @@ Run Test:
 poetry run python -m pytest
 ```
 
-Run Test via Docker:
+Run test via Docker:
 ```
 docker compose run account_metrics
 ```
