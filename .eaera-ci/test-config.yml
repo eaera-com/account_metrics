@@ -2,7 +2,7 @@ default: &default
   runner: DockerRunner
   tests:
     - name: account-metrics-test
-      template: docker-compose.yml
+      template: .eaera-ci/docker-compose-test.yml.erb
       service_name: account-metrics
       result_attachments:
         - name: report

@@ -1,6 +1,7 @@
-# Example deployment-config.yml
-dev:
+main:
   enable: true
   build:
-    - tags:
-      - dev.${{ build.commit_sha }}
+  - tags:
+    - main.latest
+    - main.${{ build.commit_sha }}
+    args: ["--build-arg", "GIT_TOKEN=${{ secrets.GITHUB_REPO_TOKEN }}"]

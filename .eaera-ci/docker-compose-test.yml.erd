@@ -1,0 +1,11 @@
+---
+version: "3.4"
+
+services:
+  account_metrics:
+    image: account_metrics
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    args:
+      GIT_TOKEN: <%= ENV['GITHUB_REPO_TOKEN'] %>
