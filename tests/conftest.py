@@ -1,9 +1,11 @@
+from typing import Dict, Type, Any
 import pytest
 from pydantic.alias_generators import to_snake
 import pandas as pd
 import os
 import datetime
 
+from account_metrics.datastore import Datastore
 from account_metrics.metric_model import MetricData
 
 from account_metrics.account_metric_by_day import AccountMetricDaily
@@ -70,3 +72,22 @@ def strip_quotes_from_string_columns(df:pd.DataFrame):
 @pytest.fixture
 def get_test_name(request):
     return request.node.name
+
+class MockDatastore(Datastore):
+    def __init__(self,data:Dict[Type[MetricData],Any]):
+        self.data = data
+        self.timestamps = 0
+        
+    
+    def contains(self,metric_data:Type[MetricData]) -> bool:
+        return metric_data in self.data
+
+    def get(self,metric_data:Type[MetricData],additional_keys:Dict[str,Any]=None) -> pd.DataFrame:
+        if self.timestamps != 0:
+            return self.data[metric_data][(self.data[metric_data]["timestamp_utc"] < self.timestamps)]
+        if metric_data == PositionMetricByDeal:
+            return self.data[metric_data]
+        return self.data[metric_data]
+    
+    def put(self,metric_data:Type[MetricData],data:Any,additional_keys:Dict[Type[MetricData],Any]=None):
+        self.data[metric_data] = data

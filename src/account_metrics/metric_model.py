@@ -10,17 +10,19 @@ class MetricCalculator(abc.ABC):
         raise NotImplementedError()
     
     @property
-    def output_class(self) -> List[str]:
+    def output_metric(self) -> List[str]:
         raise NotImplementedError()
     
-    @classmethod
     @abc.abstractmethod
-    def calculate(self, input_data: Dict[str, pd.DataFrame], current_metric:Any) -> pd.DataFrame:
+    def calculate(self, input_data: pd.DataFrame, current_metric:Any) -> pd.DataFrame:
         raise NotImplementedError()
     
-    @classmethod
     @abc.abstractmethod
-    def validate_data(self, input_data: Dict[str, pd.DataFrame]):
+    def get_dataframe_from_datastore(self,metric_data:Any,additional_keys:Any=None):
+        raise NotImplementedError()
+    
+    @abc.abstractmethod
+    def get_row_from_datastore(self,metric_data:Any,additional_keys:Any=None):
         raise NotImplementedError()
     
 class MetricData(BaseModel, abc.ABC):

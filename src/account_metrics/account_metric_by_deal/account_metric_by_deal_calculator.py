@@ -1,56 +1,31 @@
-from typing import Annotated, Dict, Tuple, Type
 import datetime
+from typing import Dict
 import pandas as pd
 
-from account_metrics.metric_model import MetricData,MetricCalculator
+
 from .account_metric_by_deal_data_model import AccountMetricByDeal
-from account_metrics.metric_utils import apply_groupby_mapping_of_metric_to_data
+
+from account_metrics.metric_model import MetricData
 from account_metrics.mt_deal_enum import EnDealAction, EnDealEntry
+from account_metrics.mt5_deal import MT5Deal
+from account_metrics.mt5_deal_daily import MT5DealDaily
+from account_metrics.datastore import Datastore
+from account_metrics.basic_deal_calculator import BasicDealMetricCalculator
 
-class AccountMetricByDealCalculator(MetricCalculator):
+class AccountMetricByDealCalculator(BasicDealMetricCalculator):
 
-    input_class = ["Deal","History"]
+    input_class = MT5Deal
+    addtional_data = [MT5DealDaily,AccountMetricByDeal]
     output_metric = AccountMetricByDeal
     groupby_field = [k for k, v in output_metric.model_fields.items() if "groupby" in v.metadata]
-
     
-    @classmethod
-    def validate_data(cls,input_data: Dict[str, pd.DataFrame]):
-        for key in cls.input_class:
-            if key not in input_data.keys():
-                print(f"Key {key} not in input data = {input_data.keys()}")
-                raise ValueError("Invalid input data")
-        if(input_data['Deal'].empty):
-            return False
-        return True
-    
-    @classmethod
-    def calculate(cls,input_data: Dict[str, pd.DataFrame], current_metric:Dict[Type[MetricData], Dict[tuple, pd.Series]]) -> pd.DataFrame:
-        if not cls.validate_data(input_data):
-            return pd.DataFrame(columns=cls.output_metric.model_fields.keys())
+    def __init__(self,datastore:Datastore):
+        super().__init__(datastore)
         
-        map_login_to_deals: Dict[Tuple[Annotated[int, "server"], Annotated[int, "login"]], pd.DataFrame] = apply_groupby_mapping_of_metric_to_data(cls.output_metric, input_data['Deal'])
-
-        result: list[pd.Series] = []
-        keys = list(map_login_to_deals.keys())
-
-        for i in range(len(keys)):
-            deals_of_login = map_login_to_deals[keys[i]]
-            init_key_value = {k: keys[i][j] for j, k in enumerate(cls.groupby_field)}
-            current_metric_of_login =current_metric.get(keys[i], pd.Series(cls.output_metric(**init_key_value).model_dump()))
-            for index, deal in deals_of_login.iterrows():
-                if deal["Deal"] <= current_metric_of_login["deal_id"]:
-                    continue
-                calculated_metric:AccountMetricByDeal = cls.calculate_row(deal, current_metric_of_login, input_data['History'])
-                new_rows = pd.Series(calculated_metric.model_dump())
-                result.append(new_rows)
-                current_metric_of_login = new_rows
-
-        return pd.DataFrame(result, columns=cls.output_metric.model_fields.keys())
-    
-    @classmethod
-    def calculate_row(cls,deal:pd.Series, prev:pd.Series, history:pd.DataFrame) ->AccountMetricByDeal:
-        metric = cls.output_metric()
+    def calculate_row(self,deal:pd.Series, prev:pd.Series, additional_df:Dict[MetricData,pd.DataFrame]) ->AccountMetricByDeal:
+        metric = self.__class__.output_metric()
+        history = additional_df[MT5DealDaily]
+        
         comment = deal["Comment"] if isinstance(deal["Comment"], str) else deal["Comment"].decode()
         action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
         entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])

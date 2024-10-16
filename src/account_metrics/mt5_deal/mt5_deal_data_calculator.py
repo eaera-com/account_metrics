@@ -8,9 +8,8 @@ from account_metrics.metric_model import MetricData, MetricCalculator
 # TODO: INCOPORATED INTO DATA MODEL AND OTHER QUERY FROM CLICKHOUSE (use same format for all data models)
 # TODO: INCORPORATE WITH TYPE TRANSLATOR FROM MT5Manager
 class MT5DealCalculator(MetricCalculator):
-    @classmethod
-    def calculate(cls, input_data: Dict[str, pd.DataFrame],  current_metric:Dict[Type[MetricData], Dict[tuple, pd.Series]]) -> pd.DataFrame:
-        result = input_data["Deal"].copy(deep=True)
+    def calculate(cls, input_data: pd.DataFrame) -> pd.DataFrame:
+        result = input_data.copy(deep=True)
         result = result.drop('Login', axis=1)
 
         result.rename(columns={
@@ -62,7 +61,3 @@ class MT5DealCalculator(MetricCalculator):
             "timestamp_server": "timestamp_server"
         },inplace=True)
         return result
-    
-    @classmethod
-    def validate_data(cls,input_data: Dict[str, pd.DataFrame]):
-        return cls.input_key in input_data.keys()
