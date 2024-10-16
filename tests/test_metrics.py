@@ -264,64 +264,63 @@ def test_position_metric_by_deal_calculation():
     # Rearragne columns order and compare dataframes
     pd.testing.assert_frame_equal(calculated_df[expected_df.columns],expected_df,check_dtype=True)
 
-# TODO: get new 2 step ground truth
-# def test_position_metric_by_deal_calculation_2():
-#     deal = get_deal()
-#     datastore = MockDatastore({
-#         MT5DealDaily:  get_metric_from_csv(MT5DealDaily,TEST_DATAFRAME_PATH[MT5DealDaily]),
-#         PositionMetricByDeal:  pd.DataFrame(columns=PositionMetricByDeal.model_fields.keys())})    # Choose active login
-#     position_metric_by_deal_calculator = PositionMetricByDealCalculator(datastore)
-#     login = deal["login"].iloc[1] # Choose active login
-#     print(deal["PositionID"])
+def test_position_metric_by_deal_calculation_2():
+    deal = get_deal()
+    datastore = MockDatastore({
+        MT5DealDaily:  get_metric_from_csv(MT5DealDaily,TEST_DATAFRAME_PATH[MT5DealDaily]),
+        PositionMetricByDeal:  pd.DataFrame(columns=PositionMetricByDeal.model_fields.keys())})    # Choose active login
+    position_metric_by_deal_calculator = PositionMetricByDealCalculator(datastore)
+    login = deal["login"].iloc[1] # Choose active login
+    print(deal["PositionID"])
 
-#     ################################################################ FIRST CALCULATION ################################################################
-#     first_retrieve_time = deal["timestamp_utc"].iloc[len(deal)//2-1]
-#     datastore.timestamps = first_retrieve_time
-#     first_retrieve_deal =  deal[(deal["timestamp_utc"] < first_retrieve_time)]
+    ################################################################ FIRST CALCULATION ################################################################
+    first_retrieve_time = deal["timestamp_utc"].iloc[len(deal)//2-1]
+    datastore.timestamps = first_retrieve_time
+    first_retrieve_deal =  deal[(deal["timestamp_utc"] < first_retrieve_time)]
     
-#     first_calculated_df = position_metric_by_deal_calculator.calculate(first_retrieve_deal)
-#     first_calculated_df = setup_string_column_type(first_calculated_df, PositionMetricByDeal)
+    first_calculated_df = position_metric_by_deal_calculator.calculate(first_retrieve_deal)
+    first_calculated_df = setup_string_column_type(first_calculated_df, PositionMetricByDeal)
     
-#     # Load the expected data from CSV
-#     expected_df = pd.read_csv(TEST_DATAFRAME_PATH[PositionMetricByDeal], dtype=extract_type_mapping(PositionMetricByDeal))
+    # Load the expected data from CSV
+    expected_df = pd.read_csv(TEST_DATAFRAME_PATH[PositionMetricByDeal], dtype=extract_type_mapping(PositionMetricByDeal))
     
-#     # Adopt type and adjust expected different columns
-#     expected_df = strip_quotes_from_string_columns(expected_df)
-#     expected_df.rename(columns={"timestamp":"timestamp_utc"}, inplace=True)
+    # Adopt type and adjust expected different columns
+    expected_df = strip_quotes_from_string_columns(expected_df)
+    expected_df.rename(columns={"timestamp":"timestamp_utc"}, inplace=True)
     
-#     # Sort the dataframes by deal_id and position_id
-#     expected_df.sort_values(by=["deal_id", "position_id"], inplace=True)
-#     expected_df.reset_index(drop=True, inplace=True)
-#     first_calculated_df.sort_values(by=["deal_id", "position_id"], inplace=True)
-#     first_calculated_df.reset_index(drop=True, inplace=True)
+    # Sort the dataframes by deal_id and position_id
+    expected_df.sort_values(by=["deal_id", "position_id"], inplace=True)
+    expected_df.reset_index(drop=True, inplace=True)
+    first_calculated_df.sort_values(by=["deal_id", "position_id"], inplace=True)
+    first_calculated_df.reset_index(drop=True, inplace=True)
     
-#     # Limit the expected data to match the calculated data
-#     expected_first_df = expected_df.head(len(first_calculated_df))
+    # Limit the expected data to match the calculated data
+    expected_first_df = expected_df.head(len(first_calculated_df))
     
-#     # Ensure both dataframes have the same columns
-#     assert set(first_calculated_df.columns) == set(expected_df.columns), f"Columns do not match {first_calculated_df.columns} != {expected_first_df.columns}"
+    # Ensure both dataframes have the same columns
+    assert set(first_calculated_df.columns) == set(expected_df.columns), f"Columns do not match {first_calculated_df.columns} != {expected_first_df.columns}"
     
-#     # Verify data types of each column
-#     for column in expected_df.columns:
-#         assert first_calculated_df[column].dtype == expected_first_df[column].dtype, f"Data type mismatch for column {column}: {first_calculated_df[column].dtype} != {expected_df[column].dtype}"
+    # Verify data types of each column
+    for column in expected_df.columns:
+        assert first_calculated_df[column].dtype == expected_first_df[column].dtype, f"Data type mismatch for column {column}: {first_calculated_df[column].dtype} != {expected_df[column].dtype}"
 
-#     # Compare dataframes
-#     pd.testing.assert_frame_equal(first_calculated_df[expected_first_df.columns], expected_first_df, check_dtype=True)
-#     ################################################################ SECOND CALCULATION ################################################################
-#     datastore.timestamps = 0 # access all data
-#     datastore.put(PositionMetricByDeal,first_calculated_df[expected_first_df.columns])
+    # Compare dataframes
+    pd.testing.assert_frame_equal(first_calculated_df[expected_first_df.columns], expected_first_df, check_dtype=True)
+    ################################################################ SECOND CALCULATION ################################################################
+    datastore.timestamps = 0 # access all data
+    datastore.put(PositionMetricByDeal,first_calculated_df[expected_first_df.columns])
 
-#     second_retrieve_deal = deal[(deal["login"] == login) & (deal["timestamp_utc"] >= first_retrieve_time)]
+    second_retrieve_deal = deal[(deal["login"] == login) & (deal["timestamp_utc"] >= first_retrieve_time)]
         
-#     second_calculated_df = position_metric_by_deal_calculator.calculate(second_retrieve_deal)
-#     second_calculated_df = setup_string_column_type(second_calculated_df, PositionMetricByDeal)
+    second_calculated_df = position_metric_by_deal_calculator.calculate(second_retrieve_deal)
+    second_calculated_df = setup_string_column_type(second_calculated_df, PositionMetricByDeal)
     
-#     # Get the rest of expected_df
-#     expected_second_df = expected_df.iloc[len(first_calculated_df):]
-#     expected_second_df = expected_second_df.reset_index(drop=True)
+    # Get the rest of expected_df
+    expected_second_df = expected_df.iloc[len(first_calculated_df):]
+    expected_second_df = expected_second_df.reset_index(drop=True)
     
-#     # Sort the dataframes by deal_id and position_id
-#     second_calculated_df.sort_values(by=["deal_id", "position_id"], inplace=True)
-#     second_calculated_df.reset_index(drop=True, inplace=True)
+    # Sort the dataframes by deal_id and position_id
+    second_calculated_df.sort_values(by=["deal_id", "position_id"], inplace=True)
+    second_calculated_df.reset_index(drop=True, inplace=True)
 
-#     pd.testing.assert_frame_equal(second_calculated_df[expected_second_df.columns], expected_second_df, check_dtype=True)
+    pd.testing.assert_frame_equal(second_calculated_df[expected_second_df.columns], expected_second_df, check_dtype=True)

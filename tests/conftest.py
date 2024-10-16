@@ -85,8 +85,8 @@ class MockDatastore(Datastore):
     def get(self,metric_data:Type[MetricData],additional_keys:Dict[str,Any]=None) -> pd.DataFrame:
         if self.timestamps != 0:
             return self.data[metric_data][(self.data[metric_data]["timestamp_utc"] < self.timestamps)]
-        if metric_data == PositionMetricByDeal:
-            return self.data[metric_data]
+        if metric_data == PositionMetricByDeal :
+            return self.data[metric_data][self.data[metric_data]["position_id"] == additional_keys["position_id"]]
         return self.data[metric_data]
     
     def put(self,metric_data:Type[MetricData],data:Any,additional_keys:Dict[Type[MetricData],Any]=None):

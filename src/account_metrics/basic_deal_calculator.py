@@ -5,14 +5,13 @@ from account_metrics.account_metric_by_day.account_metric_by_day_data_model impo
 from account_metrics.datastore import Datastore
 from account_metrics.metric_model import MetricData,MetricCalculator
 from account_metrics.metric_utils import apply_groupby_mapping_of_metric_to_data
-from account_metrics.mt5_deal_daily.mt5_deal_daily_data_model import MT5DealDaily
 
 class BasicDealMetricCalculator(MetricCalculator):
     def __init__(self,datastore:Datastore):
             self.datastore = datastore
         
     def get_dataframe_from_datastore(self,metric_data:Type[MetricData]):
-        assert metric_data in self.__class__.addtional_data
+        assert metric_data in self.__class__.additional_data
         return self.datastore.get(metric_data)
     
     def get_row_from_datastore(self,metric_data:Type[MetricData],additional_keys:Dict[Type[MetricData],Any]):  
@@ -27,9 +26,9 @@ class BasicDealMetricCalculator(MetricCalculator):
             pd.Series: The retrieved row as a pandas Series. Returns a default metric row if no data is found.
             In case of multiple rows, the last row is returned.
         """
-        assert metric_data in self.__class__.addtional_data
+        assert metric_data in self.__class__.additional_data
         for key in additional_keys:
-            assert key in metric_data.model_fields
+            assert key in metric_data.model_fields, f"{key} is not a field of {metric_data}"
         df =  self.datastore.get(metric_data,additional_keys)
         if df.empty:
             return pd.Series(self.__class__.output_metric(**additional_keys).model_dump())
@@ -45,15 +44,14 @@ class BasicDealMetricCalculator(MetricCalculator):
         keys = list(map_deals_by_groupby.keys())
         
         additional_df = {}
-        for metric in self.__class__.addtional_data:
+        for metric in self.__class__.additional_data:
             if metric != self.__class__.output_metric:
                 additional_df[metric] = self.get_dataframe_from_datastore(metric)
                 
         for i in range(len(keys)):
             deals_of_login = map_deals_by_groupby[keys[i]]
         
-            # TODO: make the key[i] less hacky
-            additional_keys = {"server":keys[i][0],"login":keys[i][1]}
+            additional_keys = {k: keys[i][j] for j, k in enumerate(self.__class__.output_metric.Meta.groupby_update_format)}
             current_metric_of_login:pd.Series = self.get_row_from_datastore(self.__class__.output_metric,additional_keys)
             for index, deal in deals_of_login.iterrows():
                 if deal["Deal"] <= current_metric_of_login["deal_id"]:

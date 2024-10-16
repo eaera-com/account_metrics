@@ -14,7 +14,7 @@ from account_metrics.basic_deal_calculator import BasicDealMetricCalculator
 class AccountSymbolMetricByDealCalculator(BasicDealMetricCalculator):
         
     input_class = MT5Deal
-    addtional_data = [AccountSymbolMetricByDeal]
+    additional_data = [AccountSymbolMetricByDeal]
     output_metric = AccountSymbolMetricByDeal
     groupby_field = [k for k, v in output_metric.model_fields.items() if "groupby" in v.metadata]
 

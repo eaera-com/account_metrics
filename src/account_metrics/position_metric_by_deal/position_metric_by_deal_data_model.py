@@ -37,3 +37,4 @@ class PositionMetricByDeal(MetricData):
         key_columns = ["server", "position_id"]
         # TODO: fix PositionID permernantly
         groupby = ["server", "PositionID"]
+        groupby_update_format = ["server", "position_id"]
