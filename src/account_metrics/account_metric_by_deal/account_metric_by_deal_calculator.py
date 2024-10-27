@@ -19,21 +19,17 @@ class AccountMetricByDealCalculator(BasicDealMetricCalculator):
     output_metric = AccountMetricByDeal
     groupby_field = [k for k, v in output_metric.model_fields.items() if "groupby" in v.metadata]
     
-    def __init__(self,datastore:Datastore):
-        super().__init__(datastore)
-        
-    def calculate_row(self,deal:pd.Series, prev:pd.Series, additional_df:Dict[MetricData,pd.DataFrame]) ->AccountMetricByDeal:
-        metric = self.__class__.output_metric()
-        history = additional_df[MT5DealDaily]
+    @classmethod
+    def calculate_row(cls,deal:pd.Series,prev:AccountMetricByDeal) ->AccountMetricByDeal:
+        metric = cls.output_metric()
+        yesterday_history: pd.Series = cls.get_metric_runner().get_datastore(MT5DealDaily).get_row_by_timestamp(deal.login,
+                                                                                                     pd.to_datetime(deal["Time"], unit="s").date() - datetime.timedelta(days=1),
+                                                                                                     timestamp_column="Date")
         
         comment = deal["Comment"] if isinstance(deal["Comment"], str) else deal["Comment"].decode()
         action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
         entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])
         
-        yesterday_history = history[
-            (history["Date"] == pd.to_datetime(deal["Time"], unit="s").date() - datetime.timedelta(days=1))
-            & (history["Login"] == deal["Login"])
-        ]
         metric.initial_deposit = (
             deal["Profit"]
             if action == EnDealAction.DEAL_BALANCE and comment.startswith("initialize") 
@@ -44,16 +40,7 @@ class AccountMetricByDealCalculator(BasicDealMetricCalculator):
             if "initialize" in comment and len(comment.split()) >= 3 and len(comment.split()[2]) >= 3
             else prev["program_id"]
         )
-        if len(yesterday_history) == 0:
-            yesterday_history = pd.Series(
-                {
-                    "Login": deal["Login"],
-                    "Balance": metric.initial_deposit,
-                    "ProfitEquity": metric.initial_deposit,
-                }
-            )
-        else:
-            yesterday_history = yesterday_history.iloc[0]
+
 
         metric.server = deal["server"]
         metric.login = deal["Login"]

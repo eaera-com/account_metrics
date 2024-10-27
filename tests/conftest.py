@@ -74,20 +74,35 @@ def get_test_name(request):
     return request.node.name
 
 class MockDatastore(Datastore):
-    def __init__(self,data:Dict[Type[MetricData],Any]):
+    def __init__(self,metric_data:Type[MetricData],data:pd.DataFrame):
         self.data = data
-        self.timestamps = 0
-        
-    
-    def contains(self,metric_data:Type[MetricData]) -> bool:
-        return metric_data in self.data
+        self.metric_data = metric_data
 
-    def get(self,metric_data:Type[MetricData],additional_keys:Dict[str,Any]=None) -> pd.DataFrame:
-        if self.timestamps != 0:
-            return self.data[metric_data][(self.data[metric_data]["timestamp_utc"] < self.timestamps)]
-        if metric_data == PositionMetricByDeal :
-            return self.data[metric_data][self.data[metric_data]["position_id"] == additional_keys["position_id"]]
-        return self.data[metric_data]
+    def get_latest_row(self,login:int):
+        id_column = "login" if self.metric_data != PositionMetricByDeal else "position_id"
+        result = self.data[self.data[id_column] == login]
+        if result.empty:
+            return pd.Series(self.metric_data().model_dump())
+        return result.iloc[-1]
     
-    def put(self,metric_data:Type[MetricData],data:Any,additional_keys:Dict[Type[MetricData],Any]=None):
-        self.data[metric_data] = data
+    def get_row_by_timestamp(self,login:int,timestamp:datetime.date,timestamp_column:str):
+        result = self.data[(self.data["Login"] == login) & (self.data[timestamp_column] == timestamp)]
+        if result.empty:
+            return pd.Series(
+                {
+                    "Login": login,
+                    "Balance": 0.0,
+                    "ProfitEquity": 0.0,
+                }
+            )
+        return result.iloc[-1]
+    
+    def put(self,data:Any):
+        self.data = pd.concat([self.data,data],ignore_index=True)
+        
+class MockMetricRunner:
+    def __init__(self,datastores:Dict[Type[MetricData],Datastore]):
+        self.datastores = datastores
+        
+    def get_datastore(self,metric_data:Type[MetricData]) -> MockDatastore:
+        return self.datastores[metric_data]

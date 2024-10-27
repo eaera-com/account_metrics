@@ -17,12 +17,11 @@ class AccountSymbolMetricByDealCalculator(BasicDealMetricCalculator):
     additional_data = [AccountSymbolMetricByDeal]
     output_metric = AccountSymbolMetricByDeal
     groupby_field = [k for k, v in output_metric.model_fields.items() if "groupby" in v.metadata]
+    
+    @classmethod
+    def calculate_row(cls,deal:pd.Series,prev:AccountSymbolMetricByDeal) -> AccountSymbolMetricByDeal:
+        metric = cls.output_metric()
 
-    def __init__(self,datastore:Datastore):
-        super().__init__(datastore)
-        
-    def calculate_row(self,deal:pd.Series, prev:pd.Series, additional_df:Dict[MetricData,pd.DataFrame]) -> AccountSymbolMetricByDeal:
-        metric = self.__class__.output_metric()
         action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
         entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])
 

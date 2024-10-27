@@ -16,32 +16,18 @@ class AccountMetricDailyCalculator(BasicDealMetricCalculator):
     additional_data = [MT5DealDaily,AccountMetricDaily]
     output_metric = AccountMetricDaily
     groupby_field = [k for k, v in output_metric.model_fields.items() if "groupby" in v.metadata]
-
-    def __init__(self,datastore:Datastore):
-        super().__init__(datastore)
     
-    def calculate_row(self, deal: pd.Series, prev:pd.Series, additional_df:Dict[MetricData,pd.DataFrame]) -> AccountMetricDaily:
-        metric= self.__class__.output_metric()
-        history = additional_df[MT5DealDaily]
+    @classmethod
+    def calculate_row(cls, deal: pd.Series, prev: AccountMetricDaily) -> AccountMetricDaily:
+        yesterday_history = cls.get_metric_runner().get_datastore(MT5DealDaily).get_row_by_timestamp(deal.login,
+                                                                                                     pd.to_datetime(deal["Time"], unit="s").date() - datetime.timedelta(days=1),
+                                                                                                     timestamp_column="Date")
+        
+        metric= cls.output_metric()
         
         comment = deal["Comment"] if isinstance(deal["Comment"], str) else deal["Comment"].decode()
         action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
         entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])
-        
-        yesterday_history = history[
-            (history["Date"] == pd.to_datetime(deal["Time"], unit="s").date() - datetime.timedelta(days=1))
-            & (history["Login"] == deal["Login"])
-        ]
-        if len(yesterday_history) == 0:
-            yesterday_history = pd.Series(
-                {
-                    "Login": deal["Login"],
-                    "Balance": 0.0,
-                    "ProfitEquity": 0.0,
-                }
-            )
-        else:
-            yesterday_history = yesterday_history.iloc[0]
 
         metric.server = deal["server"]
         metric.login = deal["Login"]

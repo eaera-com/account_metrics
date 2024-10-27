@@ -1,3 +1,4 @@
+from typing import Dict
 import pandas as pd
 
 class Datastore(object):
@@ -20,66 +21,8 @@ class Datastore(object):
 
     # Main API. Datastore mplementations MUST implement these methods.
 
-    def get(self, key) -> pd.DataFrame:
-        '''Return the object named by key or None if it does not exist.
-
-        None takes the role of default value, so no KeyError exception is raised.
-
-        Args:
-            key: Key naming the object to retrieve
-
-        Returns:
-            object or None
-        '''
+    def get_latest_row(self,keys:Dict[str,int]):
         raise NotImplementedError
 
-    def put(self, key, value:pd.DataFrame) -> None:
-        '''Stores the object `value` named by `key`.
-
-        How to serialize and store objects is up to the underlying datastore.
-        It is recommended to use simple objects (strings, numbers, lists, dicts).
-
-        Args:
-            key: Key naming `value`
-            value: the object to store.
-        '''
+    def put(self, value:pd.Series) -> None:
         raise NotImplementedError
-
-    def delete(self, key) -> None:
-        '''Removes the object named by `key`.
-
-        Args:
-            key: Key naming the object to remove.
-        '''
-        raise NotImplementedError
-
-    def query(self, query) -> pd.DataFrame:
-        '''Returns an iterable of objects matching criteria expressed in `query`
-
-        Implementations of query will be the largest differentiating factor
-        amongst datastores. All datastores **must** implement query, even using
-        query's worst case scenario, see :ref:class:`Query` for details.
-
-        Args:
-            query: Query object describing the objects to return.
-
-        Raturns:
-            iterable cursor with all objects matching criteria
-        '''
-        raise NotImplementedError
-
-    # Secondary API. Datastores MAY provide optimized implementations.
-
-    def contains(self, key) -> bool:
-        '''Returns whether the object named by `key` exists.
-
-        The default implementation pays the cost of a get. Some datastore
-        implementations may optimize this.
-
-        Args:
-            key: Key naming the object to check.
-
-        Returns:
-            boalean whether the object exists
-        '''
-        return self.get(key) is not None
