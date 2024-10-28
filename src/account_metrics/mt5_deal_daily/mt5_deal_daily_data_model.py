@@ -6,7 +6,7 @@ from account_metrics.metric_model import MetricData
 # TODO: INCOPORATED INTO DATA MODEL AND OTHER QUERY FROM CLICKHOUSE (use same format for all data models)
 # TODO: Add server and timestamp_server to all data models
 class MT5DealDaily(MetricData):
-    timestamp_utc: Annotated[int, "key"]
+    timestamp_utc: Annotated[int, "key"] =0
     Login: Annotated[int, "key"]
     Group: str = ""
     Datetime: int = 0
@@ -17,5 +17,3 @@ class MT5DealDaily(MetricData):
     timestamp_server: int = 0
     class Meta(MetricData.Meta):
         key_columns = ["Login","timestamp_utc"]
-
-

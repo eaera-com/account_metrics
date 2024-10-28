@@ -11,7 +11,7 @@ class MT5Deal(MetricData):
     server: str = ""
     Deal: Annotated[int, "key"] = 0
     deal_id: Annotated[int, "key"] = 0
-    Dealer: Annotated[int, "groupby"] = ""
+    Dealer: Annotated[int, "groupby"] = 0
     Digits: int = 0
     DigitsCurrency: int = 0
     Entry: int = 0
@@ -37,7 +37,7 @@ class MT5Deal(MetricData):
     ProfitRaw: float = 0.0
     RateMargin: float = 0.0
     RateProfit: float = 0.0
-    Reason: int = ""
+    Reason: str = ""
     Storage: float = 0.0
     Symbol: str = ""
     TickSize: float = 0.0
