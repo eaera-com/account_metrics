@@ -8,13 +8,13 @@ from account_metrics.metric_model import MetricData
 class MT5DealDaily(MetricData):
     timestamp_utc: Annotated[int, "key"]
     Login: Annotated[int, "key"]
-    Group: str
-    Datetime: int
-    Balance: float
-    ProfitEquity: float
-    Date: datetime.date
-    server: str
-    timestamp_server: int
+    Group: str = ""
+    Datetime: int = 0
+    Balance: float = 0.0
+    ProfitEquity: float = 0.0
+    Date: Annotated[datetime.date, "key"] = datetime.date(1970, 1, 1)
+    server: str = ""
+    timestamp_server: int = 0
     class Meta(MetricData.Meta):
         key_columns = ["Login","timestamp_utc"]
 

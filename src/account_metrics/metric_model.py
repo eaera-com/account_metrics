@@ -1,13 +1,13 @@
-from typing import List, Any, Dict, Type
+from typing import Annotated, List, Any, Dict, Type
 import abc
 import pandas as pd
 from pydantic import BaseModel
 from abc import abstractmethod
 
 class MetricCalculator(abc.ABC):
-    input_class: Type[Any] = None 
-    output_metric: Type[Any] = None 
-    additional_data: List[Any] = None
+    input_class:  Annotated[Any, "MetricData"] = None 
+    output_metric: Annotated[Any, "MetricData"] = None 
+    additional_data: List[Annotated[Any, "MetricData"]] = None
     groupby_field : List[Any] = None
 
     
