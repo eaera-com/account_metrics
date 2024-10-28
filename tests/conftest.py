@@ -78,23 +78,20 @@ class MockDatastore(Datastore):
         self.data = data
         self.metric_data = metric_data
 
-    def get_latest_row(self,login:int):
+    def get_latest_row(self,keys:Dict[str,Any]) -> pd.Series:
+        login = keys["login"]
         id_column = "login" if self.metric_data != PositionMetricByDeal else "position_id"
         result = self.data[self.data[id_column] == login]
         if result.empty:
             return pd.Series(self.metric_data().model_dump())
         return result.iloc[-1]
     
-    def get_row_by_timestamp(self,login:int,timestamp:datetime.date,timestamp_column:str):
-        result = self.data[(self.data["Login"] == login) & (self.data[timestamp_column] == timestamp)]
+    def get_row_by_timestamp(self,keys:Dict[str,Any],timestamp:datetime.date,timestamp_column:str):
+        filter_condition = (self.data[list(keys.keys())] == pd.Series(keys)).all(axis=1) & (self.data[timestamp_column] == timestamp)
+        result = self.data[filter_condition]
         if result.empty:
-            return pd.Series(
-                {
-                    "Login": login,
-                    "Balance": 0.0,
-                    "ProfitEquity": 0.0,
-                }
-            )
+            default_row = {**keys, "Balance": 0.0, "ProfitEquity": 0.0}
+            return pd.Series(default_row)
         return result.iloc[-1]
     
     def put(self,data:Any):

@@ -45,7 +45,7 @@ class BasicDealMetricCalculator(MetricCalculator,abc.ABC):
                 
         for i in range(len(keys)):
             deals_of_login = map_deals_by_groupby[keys[i]]
-            current_metric_of_login = cls.get_metric_runner().get_datastore(cls.output_metric).get_latest_row(keys[i][1])
+            current_metric_of_login = cls.get_metric_runner().get_datastore(cls.output_metric).get_latest_row({"login":keys[i][1]})
             for index, deal in deals_of_login.iterrows():
                 if deal["Deal"] <= current_metric_of_login["deal_id"]:
                     continue

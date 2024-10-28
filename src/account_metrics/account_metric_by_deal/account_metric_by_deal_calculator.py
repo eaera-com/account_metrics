@@ -22,7 +22,7 @@ class AccountMetricByDealCalculator(BasicDealMetricCalculator):
     @classmethod
     def calculate_row(cls,deal:pd.Series,prev:AccountMetricByDeal) ->AccountMetricByDeal:
         metric = cls.output_metric()
-        yesterday_history: pd.Series = cls.get_metric_runner().get_datastore(MT5DealDaily).get_row_by_timestamp(deal.login,
+        yesterday_history: pd.Series = cls.get_metric_runner().get_datastore(MT5DealDaily).get_row_by_timestamp({"Login":deal.login},
                                                                                                      pd.to_datetime(deal["Time"], unit="s").date() - datetime.timedelta(days=1),
                                                                                                      timestamp_column="Date")
         

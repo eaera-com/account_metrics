@@ -1,3 +1,4 @@
+import datetime
 from typing import Dict
 import pandas as pd
 
@@ -21,8 +22,11 @@ class Datastore(object):
 
     # Main API. Datastore mplementations MUST implement these methods.
 
-    def get_latest_row(self,keys:Dict[str,int]):
-        raise NotImplementedError
+    def get_latest_row(self,keys:Dict[str,int]) -> pd.Series:
+        raise NotImplementedError()
+    
+    def get_row_by_timestamp(self,keys:Dict[str,int],timestamp:datetime.date,timestamp_column:str) -> pd.Series:
+        raise NotImplementedError()
 
     def put(self, value:pd.Series) -> None:
         raise NotImplementedError
