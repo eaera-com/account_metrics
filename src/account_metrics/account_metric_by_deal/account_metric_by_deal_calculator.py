@@ -2,14 +2,12 @@ import datetime
 from typing import Dict
 import pandas as pd
 
-
 from .account_metric_by_deal_data_model import AccountMetricByDeal
 
 from account_metrics.metric_model import MetricData
 from account_metrics.mt_deal_enum import EnDealAction, EnDealEntry
 from account_metrics.mt5_deal import MT5Deal
 from account_metrics.mt5_deal_daily import MT5DealDaily
-from account_metrics.datastore import Datastore
 from account_metrics.basic_deal_calculator import BasicDealMetricCalculator
 
 class AccountMetricByDealCalculator(BasicDealMetricCalculator):

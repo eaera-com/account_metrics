@@ -23,14 +23,13 @@ def get_history(from_timestamp:datetime.date = None,to_timestamp:datetime.date =
     return history 
 
 ################################################################## TESTS ##################################################################################
-@patch('src.account_metrics.basic_deal_calculator.MetricCalculator.get_metric_runner')
-def test_account_metric_by_day_calculation(mock_get_metric_runner):
-    mock_get_metric_runner.return_value = MockMetricRunner(
+def test_account_metric_by_day_calculation():
+    AccountMetricDailyCalculator.set_metric_runner(MockMetricRunner(
         {
             MT5DealDaily: MockDatastore(MT5DealDaily, get_history()),
             AccountMetricDaily: MockDatastore(AccountMetricDaily, pd.DataFrame(columns=AccountMetricDaily.model_fields.keys()))
         }
-    )
+    ))
     deal = get_deal()
     calculated_df = AccountMetricDailyCalculator.calculate(deal)
     calculated_df = setup_string_column_type(calculated_df,AccountMetricDaily)
@@ -51,23 +50,20 @@ def test_account_metric_by_day_calculation(mock_get_metric_runner):
     # Compare dataframes
     pd.testing.assert_frame_equal(calculated_df[expected_df.columns],expected_df,check_dtype=True)
     
-@patch('src.account_metrics.basic_deal_calculator.MetricCalculator.get_metric_runner')
-def test_account_metric_by_day_calculation_2(mock_get_metric_runner):
-    mock_metric_runner = MockMetricRunner(
+def test_account_metric_by_day_calculation_2():
+    AccountMetricDailyCalculator.set_metric_runner(MockMetricRunner(
         {
             MT5DealDaily: MockDatastore(MT5DealDaily, pd.DataFrame(columns=MT5DealDaily.model_fields.keys())),
             AccountMetricDaily: MockDatastore(AccountMetricDaily, pd.DataFrame(columns=AccountMetricDaily.model_fields.keys()))
         }
-    )
-
-    mock_get_metric_runner.return_value = mock_metric_runner
+    ))
     deal = get_deal()   # Choose active login
     login = deal["login"].iloc[1]
 
     ############################ FIRST CALCULATION ############################
     first_retrieve_time = deal["timestamp_utc"].iloc[len(deal)//2-1]
     first_retrieve_deal = deal[(deal["login"] == login) & (deal["timestamp_utc"] < first_retrieve_time)]
-    mock_metric_runner.get_datastore(MT5DealDaily).put(get_history(to_timestamp=first_retrieve_time))
+    AccountMetricDailyCalculator.get_metric_runner().get_datastore(MT5DealDaily).put(get_history(to_timestamp=first_retrieve_time))
     
     first_calculated_df = AccountMetricDailyCalculator.calculate(first_retrieve_deal)
     first_calculated_df = setup_string_column_type(first_calculated_df,AccountMetricDaily)
@@ -96,8 +92,8 @@ def test_account_metric_by_day_calculation_2(mock_get_metric_runner):
     ################################################################ SECOND CALCULATION ################################################################
 
     second_retrieve_data = deal[(deal["login"] == login) & (deal["timestamp_utc"] >= first_retrieve_time)]
-    mock_metric_runner.get_datastore(MT5DealDaily).put(get_history(from_timestamp=first_retrieve_time))
-    mock_metric_runner.get_datastore(AccountMetricDaily).put(first_calculated_df[expected_first_df.columns])
+    AccountMetricDailyCalculator.get_metric_runner().get_datastore(MT5DealDaily).put(get_history(from_timestamp=first_retrieve_time))
+    AccountMetricDailyCalculator.get_metric_runner().get_datastore(AccountMetricDaily).put(first_calculated_df[expected_first_df.columns])
         
     second_calculated_df = AccountMetricDailyCalculator.calculate(second_retrieve_data)
     second_calculated_df = setup_string_column_type(second_calculated_df,AccountMetricDaily)
@@ -108,15 +104,13 @@ def test_account_metric_by_day_calculation_2(mock_get_metric_runner):
 
     pd.testing.assert_frame_equal(second_calculated_df[expected_second_df.columns], expected_second_df, check_dtype=True)
     
-@patch('src.account_metrics.basic_deal_calculator.MetricCalculator.get_metric_runner')
-def test_account_metric_by_deal_calculation(mock_get_metric_runner):
-    mock_metric_runner = MockMetricRunner(
+def test_account_metric_by_deal_calculation():
+    AccountMetricByDealCalculator.set_metric_runner(MockMetricRunner(
         {
             MT5DealDaily: MockDatastore(MT5DealDaily, get_history()),
              AccountMetricByDeal:  MockDatastore(AccountMetricByDeal, pd.DataFrame(columns=AccountMetricByDeal.model_fields.keys()))
         }
-    )
-    mock_get_metric_runner.return_value = mock_metric_runner
+    ))
     deal = get_deal()
     calculated_df = AccountMetricByDealCalculator.calculate(deal)
     calculated_df = setup_string_column_type(calculated_df,AccountMetricByDeal)
@@ -138,22 +132,20 @@ def test_account_metric_by_deal_calculation(mock_get_metric_runner):
     # Compare dataframes
     pd.testing.assert_frame_equal(calculated_df[expected_df.columns],expected_df,check_dtype=True)
     
-@patch('src.account_metrics.basic_deal_calculator.MetricCalculator.get_metric_runner')
-def test_account_metric_by_deal_calculation_2(mock_get_metric_runner):
-    mock_metric_runner = MockMetricRunner(
+def test_account_metric_by_deal_calculation_2():
+    AccountMetricByDealCalculator.set_metric_runner(MockMetricRunner(
         {
             MT5DealDaily: MockDatastore(MT5DealDaily, get_history()),
              AccountMetricByDeal:  MockDatastore(AccountMetricByDeal, pd.DataFrame(columns=AccountMetricByDeal.model_fields.keys()))
         }
-    )
-    mock_get_metric_runner.return_value = mock_metric_runner
-    
+    ))
+            
     deal = get_deal()
     login = deal["login"].iloc[1]
     ############################ FIRST CALCULATION ############################
     first_retrieve_time = deal["timestamp_utc"].iloc[len(deal)//2-1]
     first_retrieve_deal = deal[(deal["login"] == login) & (deal["timestamp_utc"] < first_retrieve_time)]
-    mock_metric_runner.get_datastore(MT5DealDaily).put(get_history(to_timestamp=first_retrieve_time))
+    AccountMetricByDealCalculator.get_metric_runner().get_datastore(MT5DealDaily).put(get_history(to_timestamp=first_retrieve_time))
     
     first_calculated_df = AccountMetricByDealCalculator.calculate(first_retrieve_deal)
     first_calculated_df = setup_string_column_type(first_calculated_df,AccountMetricByDeal)
@@ -182,27 +174,25 @@ def test_account_metric_by_deal_calculation_2(mock_get_metric_runner):
     
     ################################################################ SECOND CALCULATION ################################################################
     second_retrieve_data = deal[(deal["login"] == login) & (deal["timestamp_utc"] >= first_retrieve_time)]
-    mock_metric_runner.get_datastore(MT5DealDaily).put(get_history(from_timestamp=first_retrieve_time))
-    mock_metric_runner.get_datastore(AccountMetricByDeal).put(first_calculated_df[expected_first_df.columns])
+    AccountMetricByDealCalculator.get_metric_runner().get_datastore(MT5DealDaily).put(get_history(from_timestamp=first_retrieve_time))
+    AccountMetricByDealCalculator.get_metric_runner().get_datastore(AccountMetricByDeal).put(first_calculated_df[expected_first_df.columns])
             
     second_calculated_df = AccountMetricByDealCalculator.calculate(second_retrieve_data)
     second_calculated_df = setup_string_column_type(second_calculated_df,AccountMetricByDeal)
-    
+        
     # Get the rest of expected_df
     expected_second_df = expected_df.iloc[len(first_calculated_df):]
     expected_second_df = expected_second_df.reset_index(drop=True)
 
     pd.testing.assert_frame_equal(second_calculated_df[expected_second_df.columns], expected_second_df, check_dtype=True)
 
-@patch('src.account_metrics.basic_deal_calculator.MetricCalculator.get_metric_runner')
-def test_account_symbol_metric_by_deal_calculation(mock_get_metric_runner):
-    mock_metric_runner = MockMetricRunner(
+def test_account_symbol_metric_by_deal_calculation():
+    AccountSymbolMetricByDealCalculator.set_metric_runner(MockMetricRunner(
         {
             MT5DealDaily: MockDatastore(MT5DealDaily, get_history()),
              AccountSymbolMetricByDeal:  MockDatastore(AccountSymbolMetricByDeal, pd.DataFrame(columns=AccountSymbolMetricByDeal.model_fields.keys()))
         }
-    )
-    mock_get_metric_runner.return_value = mock_metric_runner
+    ))
     
     deal = get_deal()
     calculated_df = AccountSymbolMetricByDealCalculator.calculate(deal)
@@ -224,22 +214,20 @@ def test_account_symbol_metric_by_deal_calculation(mock_get_metric_runner):
     # Compare dataframes
     pd.testing.assert_frame_equal(calculated_df[expected_df.columns],expected_df,check_dtype=True)
     
-@patch('src.account_metrics.basic_deal_calculator.MetricCalculator.get_metric_runner')
-def test_account_symbol_metric_by_deal_calculation_2(mock_get_metric_runner):
-    mock_metric_runner = MockMetricRunner(
+def test_account_symbol_metric_by_deal_calculation_2():
+    AccountSymbolMetricByDealCalculator.set_metric_runner(MockMetricRunner(
         {
             MT5DealDaily: MockDatastore(MT5DealDaily, get_history()),
              AccountSymbolMetricByDeal:  MockDatastore(AccountSymbolMetricByDeal, pd.DataFrame(columns=AccountSymbolMetricByDeal.model_fields.keys()))
         }
-    )
-    mock_get_metric_runner.return_value = mock_metric_runner
+    ))
     
     deal = get_deal()
     login = deal["login"].iloc[1]# Choose active login
     ################################################################ FIRST CALCULATION ################################################################
     first_retrieve_time = deal["timestamp_utc"].iloc[len(deal)//2-1]
     first_retrieve_deal = deal[(deal["login"] == login) & (deal["timestamp_utc"] < first_retrieve_time)]
-    mock_metric_runner.get_datastore(MT5DealDaily).put(get_history(to_timestamp=first_retrieve_time))
+    AccountSymbolMetricByDealCalculator.get_metric_runner().get_datastore(MT5DealDaily).put(get_history(to_timestamp=first_retrieve_time))
     
     first_calculated_df = AccountSymbolMetricByDealCalculator.calculate(first_retrieve_deal)
     first_calculated_df = setup_string_column_type(first_calculated_df, AccountSymbolMetricByDeal)
@@ -267,8 +255,8 @@ def test_account_symbol_metric_by_deal_calculation_2(mock_get_metric_runner):
     
     ################################################################ SECOND CALCULATION ################################################################
     second_retrieve_data = deal[(deal["login"] == login) & (deal["timestamp_utc"] >= first_retrieve_time)]
-    mock_metric_runner.get_datastore(MT5DealDaily).put(get_history(from_timestamp=first_retrieve_time))
-    mock_metric_runner.get_datastore(AccountSymbolMetricByDeal).put(first_calculated_df[expected_first_df.columns])
+    AccountSymbolMetricByDealCalculator.get_metric_runner().get_datastore(MT5DealDaily).put(get_history(from_timestamp=first_retrieve_time))
+    AccountSymbolMetricByDealCalculator.get_metric_runner().get_datastore(AccountSymbolMetricByDeal).put(first_calculated_df[expected_first_df.columns])
         
 
     second_calculated_df = AccountSymbolMetricByDealCalculator.calculate(second_retrieve_data)
@@ -280,15 +268,13 @@ def test_account_symbol_metric_by_deal_calculation_2(mock_get_metric_runner):
 
     pd.testing.assert_frame_equal(second_calculated_df[expected_second_df.columns], expected_second_df, check_dtype=True)
 
-@patch('src.account_metrics.basic_deal_calculator.MetricCalculator.get_metric_runner')
-def test_position_metric_by_deal_calculation(mock_get_metric_runner):
-    mock_metric_runner = MockMetricRunner(
+def test_position_metric_by_deal_calculation():
+    PositionMetricByDealCalculator.set_metric_runner(MockMetricRunner(
         {
             MT5DealDaily: MockDatastore(MT5DealDaily, get_history()),
              PositionMetricByDeal:  MockDatastore(PositionMetricByDeal, pd.DataFrame(columns=PositionMetricByDeal.model_fields.keys()))
         }
-    )
-    mock_get_metric_runner.return_value = mock_metric_runner
+    ))
     
     deal = get_deal()
     calculated_df = PositionMetricByDealCalculator.calculate(deal)
@@ -311,15 +297,13 @@ def test_position_metric_by_deal_calculation(mock_get_metric_runner):
     # Rearragne columns order and compare dataframes
     pd.testing.assert_frame_equal(calculated_df[expected_df.columns],expected_df,check_dtype=True)
 
-@patch('src.account_metrics.basic_deal_calculator.MetricCalculator.get_metric_runner')
-def test_position_metric_by_deal_calculation_2(mock_get_metric_runner):
-    mock_metric_runner = MockMetricRunner(
+def test_position_metric_by_deal_calculation_2():
+    PositionMetricByDealCalculator.set_metric_runner(MockMetricRunner(
         {
             MT5DealDaily: MockDatastore(MT5DealDaily, get_history()),
              PositionMetricByDeal:  MockDatastore(PositionMetricByDeal, pd.DataFrame(columns=PositionMetricByDeal.model_fields.keys()))
         }
-    )
-    mock_get_metric_runner.return_value = mock_metric_runner
+    ))
     
     deal = get_deal()
     login = deal["login"].iloc[1]
@@ -327,7 +311,7 @@ def test_position_metric_by_deal_calculation_2(mock_get_metric_runner):
     ################################################################ FIRST CALCULATION ################################################################
     first_retrieve_time = deal["timestamp_utc"].iloc[len(deal)//2-1]
     first_retrieve_deal =  deal[(deal["timestamp_utc"] < first_retrieve_time)]
-    mock_metric_runner.get_datastore(MT5DealDaily).put(get_history(to_timestamp=first_retrieve_time))
+    PositionMetricByDealCalculator.get_metric_runner().get_datastore(MT5DealDaily).put(get_history(to_timestamp=first_retrieve_time))
     
     first_calculated_df = PositionMetricByDealCalculator.calculate(first_retrieve_deal)
     first_calculated_df = setup_string_column_type(first_calculated_df, PositionMetricByDeal)
@@ -359,8 +343,8 @@ def test_position_metric_by_deal_calculation_2(mock_get_metric_runner):
     pd.testing.assert_frame_equal(first_calculated_df[expected_first_df.columns], expected_first_df, check_dtype=True)
     ################################################################ SECOND CALCULATION ################################################################
     second_retrieve_deal = deal[(deal["login"] == login) & (deal["timestamp_utc"] >= first_retrieve_time)]
-    mock_metric_runner.get_datastore(MT5DealDaily).put(get_history(from_timestamp=first_retrieve_time))
-    mock_metric_runner.get_datastore(PositionMetricByDeal).put(first_calculated_df[expected_first_df.columns])
+    PositionMetricByDealCalculator.get_metric_runner().get_datastore(MT5DealDaily).put(get_history(from_timestamp=first_retrieve_time))
+    PositionMetricByDealCalculator.get_metric_runner().get_datastore(PositionMetricByDeal).put(first_calculated_df[expected_first_df.columns])
     
     second_calculated_df = PositionMetricByDealCalculator.calculate(second_retrieve_deal)
     second_calculated_df = setup_string_column_type(second_calculated_df, PositionMetricByDeal)

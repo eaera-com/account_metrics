@@ -2,8 +2,6 @@ from typing import Annotated, Dict, Any, Tuple, Type
 import pandas as pd
 import abc
 
-from account_metrics.account_metric_by_day.account_metric_by_day_data_model import AccountMetricDaily
-from account_metrics.datastore import Datastore
 from account_metrics.metric_model import MetricData,MetricCalculator
 from account_metrics.metric_utils import apply_groupby_mapping_of_metric_to_data
 

@@ -2,7 +2,6 @@ import datetime
 from typing import Annotated
 
 from ..metric_model import MetricData
-
 class AccountMetricByDeal(MetricData):
     server: Annotated[str, "key", "groupby"] = ""
     login: Annotated[int, "key", "groupby"] = 0

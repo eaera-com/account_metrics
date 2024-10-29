@@ -5,7 +5,7 @@ import pandas as pd
 import os
 import datetime
 
-from account_metrics.datastore import Datastore
+from metric_coordinator.model import Datastore
 from account_metrics.metric_model import MetricData
 
 from account_metrics.account_metric_by_day import AccountMetricDaily
@@ -86,7 +86,7 @@ class MockDatastore(Datastore):
             return pd.Series(self.metric_data().model_dump())
         return result.iloc[-1]
     
-    def get_row_by_timestamp(self,keys:Dict[str,Any],timestamp:datetime.date,timestamp_column:str):
+    def get_row_by_timestamp(self,keys:Dict[str,Any],timestamp:datetime.date,timestamp_column:str) -> pd.Series:
         filter_condition = (self.data[list(keys.keys())] == pd.Series(keys)).all(axis=1) & (self.data[timestamp_column] == timestamp)
         result = self.data[filter_condition]
         if result.empty:

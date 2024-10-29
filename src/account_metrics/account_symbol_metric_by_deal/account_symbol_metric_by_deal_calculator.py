@@ -7,7 +7,6 @@ from .account_symbol_metric_by_deal_data_model import AccountSymbolMetricByDeal
 from account_metrics.metric_model import MetricData
 from account_metrics.mt_deal_enum import EnDealAction, EnDealEntry
 from account_metrics.mt5_deal.mt5_deal_data_model import MT5Deal
-from account_metrics.datastore import Datastore
 from account_metrics.basic_deal_calculator import BasicDealMetricCalculator
 
 
