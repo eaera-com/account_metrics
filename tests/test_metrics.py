@@ -358,3 +358,27 @@ def test_position_metric_by_deal_calculation_2():
     second_calculated_df.reset_index(drop=True, inplace=True)
 
     pd.testing.assert_frame_equal(second_calculated_df[expected_second_df.columns], expected_second_df, check_dtype=True)
+
+
+def get_perf_test_df():
+    csv_path = "tests/test_data/large/auda_deals.csv"
+    df = get_metric_from_csv(MT5Deal, csv_path)
+    return df
+
+def test_perf():
+    start_time = time.time()
+    
+    AccountMetricByDealCalculator.set_metric_runner(MockMetricRunner(
+        {
+            MT5DealDaily: MockDatastore(MT5DealDaily, get_history()),
+             AccountMetricByDeal:  MockDatastore(AccountMetricByDeal, pd.DataFrame(columns=AccountMetricByDeal.model_fields.keys()))
+        }
+    ))
+    deals = get_perf_test_df()
+    
+    AccountMetricByDealCalculator.calculate(deals)
+    end_time = time.time()  
+
+    elapsed_time = end_time - start_time 
+    assert elapsed_time > 10**15    # just so that it fails
+    
