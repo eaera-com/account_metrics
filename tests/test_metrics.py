@@ -1,4 +1,5 @@
 import datetime
+import logging
 from unittest.mock import patch
 import pandas as pd
 
@@ -22,6 +23,8 @@ def get_history(from_timestamp:datetime.date = None,to_timestamp:datetime.date =
         history = history[(history["timestamp_utc"] <= to_timestamp)]
     return history 
 
+logger = logging.getLogger(__name__)
+
 ################################################################## TESTS ##################################################################################
 def test_account_metric_by_day_calculation():
     AccountMetricDailyCalculator.set_metric_runner(MockMetricRunner(
@@ -31,7 +34,11 @@ def test_account_metric_by_day_calculation():
         }
     ))
     deal = get_deal()
+    start_time = datetime.datetime.now()
     calculated_df = AccountMetricDailyCalculator.calculate(deal)
+    end_time = datetime.datetime.now()
+    elapsed_time = end_time - start_time
+    print(f"Elapsed time for AccountMetricDailyCalculator.calculate: {elapsed_time.total_seconds()} seconds")
     calculated_df = setup_string_column_type(calculated_df,AccountMetricDaily)
     
     # Load the expected data from CSV
@@ -112,7 +119,11 @@ def test_account_metric_by_deal_calculation():
         }
     ))
     deal = get_deal()
+    start_time = datetime.datetime.now()
     calculated_df = AccountMetricByDealCalculator.calculate(deal)
+    end_time = datetime.datetime.now()
+    elapsed_time = end_time - start_time
+    print(f"Elapsed time for AccountMetricByDealCalculator.calculate: {elapsed_time.total_seconds()} seconds")
     calculated_df = setup_string_column_type(calculated_df,AccountMetricByDeal)
         
     # Load the expected data from CSV
@@ -195,7 +206,11 @@ def test_account_symbol_metric_by_deal_calculation():
     ))
     
     deal = get_deal()
+    start_time = datetime.datetime.now()
     calculated_df = AccountSymbolMetricByDealCalculator.calculate(deal)
+    end_time = datetime.datetime.now()
+    elapsed_time = end_time - start_time
+    print(f"Elapsed time for AccountSymbolMetricByDealCalculator.calculate: {elapsed_time.total_seconds()} seconds")
     calculated_df = setup_string_column_type(calculated_df,AccountSymbolMetricByDeal)
 
     # Load the expected data from CSV
@@ -358,27 +373,3 @@ def test_position_metric_by_deal_calculation_2():
     second_calculated_df.reset_index(drop=True, inplace=True)
 
     pd.testing.assert_frame_equal(second_calculated_df[expected_second_df.columns], expected_second_df, check_dtype=True)
-
-
-def get_perf_test_df():
-    csv_path = "tests/test_data/large/auda_deals.csv"
-    df = get_metric_from_csv(MT5Deal, csv_path)
-    return df
-
-def test_perf():
-    start_time = time.time()
-    
-    AccountMetricByDealCalculator.set_metric_runner(MockMetricRunner(
-        {
-            MT5DealDaily: MockDatastore(MT5DealDaily, get_history()),
-             AccountMetricByDeal:  MockDatastore(AccountMetricByDeal, pd.DataFrame(columns=AccountMetricByDeal.model_fields.keys()))
-        }
-    ))
-    deals = get_perf_test_df()
-    
-    AccountMetricByDealCalculator.calculate(deals)
-    end_time = time.time()  
-
-    elapsed_time = end_time - start_time 
-    assert elapsed_time > 10**15    # just so that it fails
-    

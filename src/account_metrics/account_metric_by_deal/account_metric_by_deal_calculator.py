@@ -19,23 +19,34 @@ class AccountMetricByDealCalculator(BasicDealMetricCalculator):
     
     @classmethod
     def calculate_row(cls,deal:pd.Series,prev:AccountMetricByDeal) ->AccountMetricByDeal:
-        metric = cls.output_metric()
-        yesterday_history: pd.Series = cls.get_metric_runner().get_datastore(MT5DealDaily).get_row_by_timestamp({"Login":deal.login},
-                                                                                                     pd.to_datetime(deal["Time"], unit="s").date() - datetime.timedelta(days=1),
-                                                                                                     timestamp_column="Date")
-        
         comment = deal["Comment"] if isinstance(deal["Comment"], str) else deal["Comment"].decode()
         action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
         entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])
-        
-        metric.initial_deposit = (
-            deal["Profit"]
-            if action == EnDealAction.DEAL_BALANCE and comment.startswith("initialize") 
-            else prev["initial_deposit"]
+        is_initialize = "initialize" in comment
+        #TODO: fix the bug in initialize_deposit
+        initial_deposit = deal["Profit"] if action == EnDealAction.DEAL_BALANCE and comment.startswith("initialize") else prev["initial_deposit"]
+
+
+        yesterday_history = cls.get_metric_runner().get_datastore(MT5DealDaily).get_row_by_timestamp({"Login":deal.login},
+                                                                                                     pd.to_datetime(deal["Time"], unit="s").date() - datetime.timedelta(days=1),
+                                                                                                     timestamp_column="Date")
+        if (is_initialize or "Deposit" in comment) and yesterday_history is None:
+            yesterday_history = pd.Series(
+            {
+                "Login": deal["Login"],
+                "Balance": initial_deposit,
+                "ProfitEquity": initial_deposit,
+            }
         )
+        #TODO: throw a defined error to catch and handle later
+        assert yesterday_history is not None, "No history for {deal['Login']} on {pd.to_datetime(deal['Time'], unit='s').date() - datetime.timedelta(days=1)}"
+        
+        metric = cls.output_metric()
+
+        metric.initial_deposit = initial_deposit
         metric.program_id = (
             comment.split()[2][3:] 
-            if "initialize" in comment and len(comment.split()) >= 3 and len(comment.split()[2]) >= 3
+            if is_initialize and len(comment.split()) >= 3 and len(comment.split()[2]) >= 3
             else prev["program_id"]
         )
 
@@ -61,7 +72,7 @@ class AccountMetricByDealCalculator(BasicDealMetricCalculator):
         metric.max_balance_equity = max(yesterday_history["Balance"], yesterday_history["ProfitEquity"])
         metric.net_deposit = prev["net_deposit"] + (
             deal["Profit"]
-            if action == EnDealAction.DEAL_BALANCE and "initialize" not in comment
+            if action == EnDealAction.DEAL_BALANCE and not is_initialize
             else 0.0
         )
         metric.yesterday_net_deposit = (
@@ -130,7 +141,7 @@ class AccountMetricByDealCalculator(BasicDealMetricCalculator):
             deal["Profit"]
             if action in [EnDealAction.DEAL_BALANCE]
             and deal["Profit"] > 0
-            and "initialize" not in comment
+            and not is_initialize
             else 0.0
         )
         metric.total_withdrawal = prev["total_withdrawal"] + (

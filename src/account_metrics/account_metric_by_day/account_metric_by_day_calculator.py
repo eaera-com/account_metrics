@@ -16,15 +16,28 @@ class AccountMetricDailyCalculator(BasicDealMetricCalculator):
     
     @classmethod
     def calculate_row(cls, deal: pd.Series, prev: AccountMetricDaily) -> AccountMetricDaily:
-        yesterday_history = cls.get_metric_runner().get_datastore(MT5DealDaily).get_row_by_timestamp({"Login":deal.login},
-                                                                                                     pd.to_datetime(deal["Time"], unit="s").date() - datetime.timedelta(days=1),
-                                                                                                     timestamp_column="Date")
-        
-        metric= cls.output_metric()
-        
         comment = deal["Comment"] if isinstance(deal["Comment"], str) else deal["Comment"].decode()
         action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
         entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])
+        is_initialize = "initialize" in comment
+
+        yesterday_history = cls.get_metric_runner().get_datastore(MT5DealDaily).get_row_by_timestamp({"Login":deal.login},
+                                                                                                     pd.to_datetime(deal["Time"], unit="s").date() - datetime.timedelta(days=1),
+                                                                                                     timestamp_column="Date")
+        # TODO: double check the logic of initialize what happen if yesterday_history exists when initialize
+        if (is_initialize or "Deposit" in comment) and yesterday_history is None:
+            yesterday_history = pd.Series(
+            {
+                "Login": deal["Login"],
+                "Balance": 0.0,
+                "ProfitEquity":0.0,
+            }
+        )
+            
+        #TODO: throw a defined error to catch and handle later
+        assert yesterday_history is not None, "No history for {deal['Login']} on {pd.to_datetime(deal['Time'], unit='s').date() - datetime.timedelta(days=1)}"
+        
+        metric= cls.output_metric()
 
         metric.server = deal["server"]
         metric.login = deal["Login"]
@@ -36,7 +49,7 @@ class AccountMetricDailyCalculator(BasicDealMetricCalculator):
         metric.max_balance_equity = max(yesterday_history["Balance"], yesterday_history["ProfitEquity"])
         metric.net_deposit = prev["net_deposit"] + (
             deal["Profit"]
-            if action == EnDealAction.DEAL_BALANCE and "initialize" not in comment
+            if action == EnDealAction.DEAL_BALANCE and not is_initialize
             else 0.0
         )
         metric.yesterday_net_deposit = (
@@ -72,7 +85,7 @@ class AccountMetricDailyCalculator(BasicDealMetricCalculator):
             deal["Profit"]
             if action in [EnDealAction.DEAL_BALANCE]
             and deal["Profit"] > 0
-            and "initialize" not in comment
+            and not is_initialize
             else 0.0
         )
         metric.total_withdrawal = prev["total_withdrawal"] + (

@@ -1,2 +1,10 @@
 # To ensure app dependencies are ported from your virtual environment/host machine into your container, run 'pip freeze > requirements.txt' in the terminal to overwrite this file
 git+https://github.com/eaera-com/metric_coordinator.git#egg=metric_coordinator
+
+pytest
+pytest-xdist
+pytest-cov
+pytest-asyncio
+pydantic
+pandas
+pydantic-settings
