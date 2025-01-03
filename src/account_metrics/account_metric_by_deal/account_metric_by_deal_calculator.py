@@ -38,6 +38,11 @@ class AccountMetricByDealCalculator(BasicDealMetricCalculator):
                 "ProfitEquity": initial_deposit,
             }
         )
+            
+        if (is_initialize or "Deposit" in comment) and prev is None:
+            prev = cls.output_metric()
+            prev.deal_id = deal.deal_id
+
         #TODO: throw a defined error to catch and handle later
         assert yesterday_history is not None, "No history for {deal['Login']} on {pd.to_datetime(deal['Time'], unit='s').date() - datetime.timedelta(days=1)}"
         
