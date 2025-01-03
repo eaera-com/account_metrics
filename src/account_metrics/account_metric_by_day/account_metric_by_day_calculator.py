@@ -1,4 +1,5 @@
 import datetime
+from typing import Union
 import pandas as pd
 
 from .account_metric_by_day_data_model import AccountMetricDaily
@@ -15,7 +16,7 @@ class AccountMetricDailyCalculator(BasicDealMetricCalculator):
     groupby_field = [k for k, v in output_metric.model_fields.items() if "groupby" in v.metadata]
     
     @classmethod
-    def calculate_row(cls, deal: pd.Series, prev: AccountMetricDaily) -> AccountMetricDaily:
+    def calculate_row(cls, deal: pd.Series, prev: Union[AccountMetricDaily, None]) -> AccountMetricDaily:
         comment = deal["Comment"] if isinstance(deal["Comment"], str) else deal["Comment"].decode()
         action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
         entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])

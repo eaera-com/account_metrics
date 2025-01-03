@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict
+from typing import Dict, Union
 import pandas as pd
 
 from .account_metric_by_deal_data_model import AccountMetricByDeal
@@ -18,11 +18,12 @@ class AccountMetricByDealCalculator(BasicDealMetricCalculator):
     groupby_field = [k for k, v in output_metric.model_fields.items() if "groupby" in v.metadata]
     
     @classmethod
-    def calculate_row(cls,deal:pd.Series,prev:AccountMetricByDeal) ->AccountMetricByDeal:
+    def calculate_row(cls,deal:pd.Series,prev: Union[AccountMetricByDeal, None]) ->AccountMetricByDeal:
         comment = deal["Comment"] if isinstance(deal["Comment"], str) else deal["Comment"].decode()
         action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
         entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])
         is_initialize = "initialize" in comment
+        
         #TODO: fix the bug in initialize_deposit
         initial_deposit = deal["Profit"] if action == EnDealAction.DEAL_BALANCE and comment.startswith("initialize") else prev["initial_deposit"]
 
