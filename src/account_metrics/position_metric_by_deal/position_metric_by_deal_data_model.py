@@ -34,7 +34,7 @@ class PositionMetricByDeal(MetricData):
     
     class Meta(MetricData.Meta):
         kafka_num_consumers = 3
-        key_columns = ["server", "position_id"]
+        sharding_columns = ["server", "position_id"]
         # TODO: fix PositionID permernantly
         groupby = ["server", "PositionID"]
         groupby_update_format = ["server", "position_id"]

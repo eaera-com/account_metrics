@@ -43,6 +43,6 @@ class AccountMetricDaily(MetricData):
  
     class Meta(MetricData.Meta):
         kafka_num_consumers = 3
-        key_columns = ["server", "login", "date"]
+        sharding_columns = ["server", "login", "date"]
         groupby = ["server", "login"]
         groupby_update_format = ["server", "login"]

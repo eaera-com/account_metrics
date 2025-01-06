@@ -54,4 +54,4 @@ class MT5Deal(MetricData):
     VolumeExt: int = 0
 
     class Meta(MetricData.Meta):
-        key_columns = ["Deal"]
+        sharding_columns = ["Deal"]

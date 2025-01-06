@@ -55,7 +55,7 @@ class AccountMetricByDeal(MetricData):
 
     class Meta(MetricData.Meta):
         kafka_num_consumers = 3
-        key_columns = ["server", "login","deal_id"]
+        sharding_columns = ["server", "login","deal_id"]
         groupby = ["server", "login"]
         groupby_update_format = ["server", "login"]
         does_stream_out = True

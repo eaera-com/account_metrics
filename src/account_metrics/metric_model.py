@@ -28,6 +28,6 @@ class MetricCalculator(abc.ABC):
 class MetricData(BaseModel, abc.ABC):
     # TODO: enforce all variables are assigned in data_model
     class Meta:
-        key_columns = []
+        sharding_columns = []
         groupby = []
         does_stream_out = False
