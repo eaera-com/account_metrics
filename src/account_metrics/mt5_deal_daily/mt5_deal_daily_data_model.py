@@ -16,4 +16,4 @@ class MT5DealDaily(MetricData):
     server: str = ""
     timestamp_server: int = 0
     class Meta(MetricData.Meta):
-        sharding_columns = ["Login","timestamp_utc"]
+        key_columns = ["Login","timestamp_utc"]

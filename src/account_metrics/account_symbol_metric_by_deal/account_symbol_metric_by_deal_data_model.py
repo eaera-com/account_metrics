@@ -16,6 +16,6 @@ class AccountSymbolMetricByDeal(MetricData):
 
     class Meta(MetricData.Meta):
         kafka_num_consumers = 3
-        sharding_columns = ["server", "login","deal_id"]
+        key_columns = ["server", "login","deal_id"]
         groupby = ["server", "login"]
         groupby_update_format = ["server", "login"]
