@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Annotated, Type, Any
+from typing import Dict, Tuple, Annotated, Type, Any, Union
 import pandas as pd
 
 
@@ -18,8 +18,12 @@ class AccountSymbolMetricByDealCalculator(BasicDealMetricCalculator):
     groupby_field = [k for k, v in output_metric.model_fields.items() if "groupby" in v.metadata]
     
     @classmethod
-    def calculate_row(cls,deal:pd.Series,prev:AccountSymbolMetricByDeal) -> AccountSymbolMetricByDeal:
+    def calculate_row(cls,deal:pd.Series,prev:Union[AccountSymbolMetricByDeal,None]) -> AccountSymbolMetricByDeal:
         metric = cls.output_metric()
+        
+        if prev is None:
+            prev = cls.output_metric()
+            prev.login = deal["Login"]
 
         action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
         entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])

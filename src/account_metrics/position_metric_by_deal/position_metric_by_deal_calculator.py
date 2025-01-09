@@ -20,6 +20,10 @@ class PositionMetricByDealCalculator(BasicDealMetricCalculator):
     def calculate_row(cls, deal:pd.Series,prev:PositionMetricByDeal) -> PositionMetricByDeal:
         metric = cls.output_metric()
         
+        if prev is None:
+            prev = cls.output_metric()
+            prev.position_id = deal["PositionID"]
+
         action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
         entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])
 
