@@ -18,12 +18,10 @@ class AccountSymbolMetricByDealCalculator(BasicDealMetricCalculator):
     groupby_field = [k for k, v in output_metric.model_fields.items() if "groupby" in v.metadata]
     
     @classmethod
-    def calculate_row(cls,deal:pd.Series,prev:Union[AccountSymbolMetricByDeal,None]) -> AccountSymbolMetricByDeal:
+    def calculate_row(cls,deal:pd.Series, additional_data:Dict[Type[MetricData],Any]) -> AccountSymbolMetricByDeal:
         metric = cls.output_metric()
         
-        if prev is None:
-            prev = cls.output_metric()
-            prev.login = deal["Login"]
+        prev = cls._get_current_metric(deal, additional_data)
 
         action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
         entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])
@@ -41,16 +39,16 @@ class AccountSymbolMetricByDealCalculator(BasicDealMetricCalculator):
         metric.timestamp_server = deal["Time"]
         metric.timestamp_utc = deal["TimeUTC"]
         metric.symbol = deal["Symbol"]
-        metric.total_profit = prev["total_profit"] + (
+        metric.total_profit = prev.total_profit + (
             deal["Profit"]
             if action in [EnDealAction.DEAL_BUY, EnDealAction.DEAL_SELL]
             and entry
             in [EnDealEntry.ENTRY_OUT, EnDealEntry.ENTRY_INOUT, EnDealEntry.ENTRY_OUT_BY]
             else 0.0
         )
-        metric.total_commission = prev["total_commission"] + deal["Commission"]
-        metric.total_storage = prev["total_storage"] + deal["Storage"]
-        metric.total_trades = prev["total_trades"] + (
+        metric.total_commission = prev.total_commission + deal["Commission"]
+        metric.total_storage = prev.total_storage + deal["Storage"]
+        metric.total_trades = prev.total_trades + (
             1
             if action in [EnDealAction.DEAL_BUY, EnDealAction.DEAL_SELL]
             and entry
@@ -58,5 +56,15 @@ class AccountSymbolMetricByDealCalculator(BasicDealMetricCalculator):
             else 0
         )
 
-        return metric
+        return metric, {}
+
+    @classmethod
+    def _get_current_metric(cls, deal, additional_data):
+        if 'current_metric' in additional_data:
+            prev:AccountSymbolMetricByDeal = additional_data['current_metric']
+        else:
+            prev = cls.output_metric()
+            prev.login = deal["Login"]
+        assert prev is not None, f"No previous metric {cls.output_metric()} for {deal['Login']}"
+        return prev
 

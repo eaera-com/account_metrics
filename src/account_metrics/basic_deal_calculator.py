@@ -6,31 +6,6 @@ from account_metrics.metric_model import MetricData,MetricCalculator
 from account_metrics.metric_utils import apply_groupby_mapping_of_metric_to_data
 
 class BasicDealMetricCalculator(MetricCalculator,abc.ABC):
-        
-    # def get_dataframe_from_datastore(self,metric_data:Type[MetricData]):
-    #     assert metric_data in self.__class__.additional_data
-    #     return self.datastore.get(metric_data)
-    
-    # def get_row_from_datastore(self,metric_data:Type[MetricData],additional_keys:Dict[Type[MetricData],Any]):  
-    #     """
-    #     Retrieve a row from the datastore based on the provided metric data and additional keys.
-
-    #     Args:
-    #         metric_data (Type[MetricData]): The type of metric data to retrieve.
-    #         additional_keys (Dict[Type[MetricData], Any]): Additional keys for filtering the datastore query.
-
-    #     Returns:
-    #         pd.Series: The retrieved row as a pandas Series. Returns a default metric row if no data is found.
-    #         In case of multiple rows, the last row is returned.
-    #     """
-    #     assert metric_data in self.__class__.additional_data
-    #     for key in additional_keys:
-    #         assert key in metric_data.model_fields, f"{key} is not a field of {metric_data}"
-    #     df =  self.datastore.get(metric_data,additional_keys)
-    #     if df.empty:
-    #         return pd.Series(self.__class__.output_metric(**additional_keys).model_dump())
-    #     return df.iloc[-1]
-    
     
     @classmethod
     def calculate(cls,input_data:pd.DataFrame) -> pd.DataFrame:
@@ -47,7 +22,7 @@ class BasicDealMetricCalculator(MetricCalculator,abc.ABC):
             for index, deal in deals_of_login.iterrows():
                 if current_metric_of_login is not None and deal["Deal"] <= current_metric_of_login["deal_id"]:
                     continue
-                calculated_metric:MetricData = cls.calculate_row(deal, current_metric_of_login)
+                calculated_metric, carry_data = cls.calculate_row(deal, {"current_metric":current_metric_of_login})
                 new_row = pd.Series(calculated_metric.model_dump())
                 result.append(new_row)
                 current_metric_of_login = new_row

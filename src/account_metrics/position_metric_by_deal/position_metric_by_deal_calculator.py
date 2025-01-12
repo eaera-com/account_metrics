@@ -1,5 +1,7 @@
-from typing import Dict, Tuple, Annotated, Type, Any
+from typing import Dict, Tuple, Annotated, Type, Any, Union
 import pandas as pd
+
+from account_metrics.metric_model import MetricData
 
 
 from .position_metric_by_deal_data_model import PositionMetricByDeal
@@ -17,22 +19,20 @@ class PositionMetricByDealCalculator(BasicDealMetricCalculator):
     
     # TODO: Check if positional_metric should be grouped by login. Otherwise, override calculate method
     @classmethod
-    def calculate_row(cls, deal:pd.Series,prev:PositionMetricByDeal) -> PositionMetricByDeal:
+    def calculate_row(cls, deal:pd.Series, additional_data:Dict[Type[MetricData],Any]) -> PositionMetricByDeal:
         metric = cls.output_metric()
         
-        if prev is None:
-            prev = cls.output_metric()
-            prev.position_id = deal["PositionID"]
+        prev = cls._get_current_metric(deal, additional_data)
 
         action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
         entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])
 
         metric.server = deal["server"]
-        metric.action = action.value if entry == EnDealEntry.ENTRY_IN else prev["action"]
-        metric.comment = deal["Comment"] if entry == EnDealEntry.ENTRY_IN else prev["comment"]
-        metric.commission = deal["Commission"] + prev["commission"]
+        metric.action = action.value if entry == EnDealEntry.ENTRY_IN else prev.action
+        metric.comment = deal["Comment"] if entry == EnDealEntry.ENTRY_IN else prev.comment
+        metric.commission = deal["Commission"] + prev.commission
         metric.deal_id = deal["Deal"]
-        metric.digits = deal["Digits"] if entry == EnDealEntry.ENTRY_IN else prev["digits"]
+        metric.digits = deal["Digits"] if entry == EnDealEntry.ENTRY_IN else prev.digits
         metric.digits_currency = deal["DigitsCurrency"]
         metric.login = deal["Login"]
         metric.position_id = deal["PositionID"]
@@ -40,23 +40,33 @@ class PositionMetricByDealCalculator(BasicDealMetricCalculator):
         metric.price_position = deal["PricePosition"]
         metric.price_sl = deal["PriceSL"]
         metric.price_tp = deal["PriceTP"]
-        metric.profit = deal["Profit"] + prev["profit"]
-        metric.profit_raw = deal["ProfitRaw"] + prev["profit_raw"]
+        metric.profit = deal["Profit"] + prev.profit
+        metric.profit_raw = deal["ProfitRaw"] + prev.profit_raw
         metric.rate_margin = deal["RateMargin"]
-        metric.storage = deal["Storage"] + prev["storage"]
+        metric.storage = deal["Storage"] + prev.storage
         metric.symbol = deal["Symbol"]
         metric.timestamp_utc = deal["TimeUTC"]
         metric.timestamp_server = deal["Time"]
-        metric.timestamp_open = deal["TimeUTC"] if entry == EnDealEntry.ENTRY_IN else prev["timestamp_open"]
+        metric.timestamp_open = deal["TimeUTC"] if entry == EnDealEntry.ENTRY_IN else prev.timestamp_open
         metric.timestamp_open_server = (
-            deal["Time"] if entry == EnDealEntry.ENTRY_IN else prev["timestamp_open_server"]
+            deal["Time"] if entry == EnDealEntry.ENTRY_IN else prev.timestamp_open_server
         )
-        metric.volume = deal["Volume"] if entry == EnDealEntry.ENTRY_IN else prev["volume"]
-        metric.volume_closed = deal["VolumeClosed"] + prev["volume_closed"]
+        metric.volume = deal["Volume"] if entry == EnDealEntry.ENTRY_IN else prev.volume
+        metric.volume_closed = deal["VolumeClosed"] + prev.volume_closed
         metric.volume_remaining = metric.volume - metric.volume_closed
-        metric.volume_ext = deal["VolumeExt"] if entry == EnDealEntry.ENTRY_IN else prev["volume_ext"]
-        metric.volume_closed_ext = deal["VolumeClosedExt"] + prev["volume_closed_ext"]
+        metric.volume_ext = deal["VolumeExt"] if entry == EnDealEntry.ENTRY_IN else prev.volume_ext
+        metric.volume_closed_ext = deal["VolumeClosedExt"] + prev.volume_closed_ext
         metric.volume_remaining_ext = metric.volume_ext - metric.volume_closed_ext
         metric.net_profit = metric.profit + metric.commission + metric.storage
 
-        return metric
+        return metric, {}
+
+    @classmethod
+    def _get_current_metric(cls, deal, additional_data):
+        if 'current_metric' in additional_data:
+            prev:PositionMetricByDeal = additional_data['current_metric']
+        else:
+            prev = cls.output_metric()
+            prev.position_id = deal["PositionID"]
+        assert prev is not None, f"No previous metric {cls.output_metric()} for {deal['Login']}, {deal['PositionID']}"
+        return prev

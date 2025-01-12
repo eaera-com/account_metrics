@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Union
+from typing import Any, Dict, Type, Union
 import pandas as pd
 
 from .account_metric_by_deal_data_model import AccountMetricByDeal
@@ -18,34 +18,20 @@ class AccountMetricByDealCalculator(BasicDealMetricCalculator):
     groupby_field = [k for k, v in output_metric.model_fields.items() if "groupby" in v.metadata]
     
     @classmethod
-    def calculate_row(cls,deal:pd.Series,prev: Union[AccountMetricByDeal, None]) ->AccountMetricByDeal:
+    def calculate_row(cls,deal:pd.Series, additional_data:Dict[Type[MetricData],Any]) ->AccountMetricByDeal:
         comment = deal["Comment"] if isinstance(deal["Comment"], str) else deal["Comment"].decode()
         action = deal["Action"] if isinstance(deal["Action"], EnDealAction) else EnDealAction(deal["Action"])
         entry = deal["Entry"] if isinstance(deal["Entry"], EnDealEntry) else EnDealEntry(deal["Entry"])
         is_initialize = "initialize" in comment
         
-        #TODO: fix the bug in initialize_deposit
-        initial_deposit = deal["Profit"] if action == EnDealAction.DEAL_BALANCE and comment.startswith("initialize") else prev["initial_deposit"]
-
-        yesterday_history = cls.get_metric_runner().get_datastore(MT5DealDaily).get_row_by_timestamp({"Login":deal.login},
-                                                                                                     pd.to_datetime(deal["Time"], unit="s").date() - datetime.timedelta(days=1),
-                                                                                                     timestamp_column="Date")
-        if (is_initialize or "Deposit" in comment) and yesterday_history is None:
-            yesterday_history = pd.Series(
-            {
-                "Login": deal["Login"],
-                "Balance": initial_deposit,
-                "ProfitEquity": initial_deposit,
-            }
-        )
-            
-        if (is_initialize or "Deposit" in comment) and prev is None:
-            prev = cls.output_metric()
-            prev.deal_id = deal.deal_id
-
-        #TODO: throw a defined error to catch and handle later
-        assert yesterday_history is not None, "No history for {deal['Login']} on {pd.to_datetime(deal['Time'], unit='s').date() - datetime.timedelta(days=1)}"
+        prev = cls._get_current_metric(deal, additional_data)
         
+        #TODO: throw a defined error to catch and handle later
+        initial_deposit = deal["Profit"] if action == EnDealAction.DEAL_BALANCE and comment.startswith("initialize") else prev.initial_deposit
+
+        
+        yesterday_history = cls._get_history(deal, comment, is_initialize, initial_deposit, additional_data)
+                    
         metric = cls.output_metric()
 
         metric.initial_deposit = initial_deposit
@@ -243,4 +229,32 @@ class AccountMetricByDealCalculator(BasicDealMetricCalculator):
         metric.average_win = metric.gross_profit / metric.count_profit_trades if metric.count_profit_trades > 0 else 0.0
         metric.average_loss = metric.gross_loss / metric.count_loss_trades if metric.count_loss_trades > 0 else 0.0
 
-        return metric
+        return metric,{}
+
+    @classmethod
+    def _get_history(cls, deal, comment, is_initialize, initial_deposit, additional_data):
+        yesterday_history = cls.get_metric_runner().get_datastore(MT5DealDaily).get_row_by_timestamp({"Login":deal.login},
+                                                                                                     pd.to_datetime(deal["Time"], unit="s").date() - datetime.timedelta(days=1),
+                                                                                                     timestamp_column="Date")
+        # TODO: define what to do if initialize today.
+        # if (is_initialize or "Deposit" in comment) and yesterday_history is None:\
+        if yesterday_history is None:
+            yesterday_history = pd.Series(
+            {
+                "Login": deal["Login"],
+                "Balance": initial_deposit,
+                "ProfitEquity": initial_deposit,
+            }
+        )
+        # assert yesterday_history is not None, "No history for {deal['Login']} on {pd.to_datetime(deal['Time'], unit='s').date() - datetime.timedelta(days=1)}"
+        return yesterday_history
+
+    @classmethod
+    def _get_current_metric(cls, deal, additional_data):
+        if 'current_metric' in additional_data:
+            prev:AccountMetricByDeal = additional_data['current_metric']
+        else:
+            prev = cls.output_metric()
+            prev.login = deal["Login"]
+        assert prev is not None, f"No previous metric {cls.output_metric()} for {deal['Login']}"
+        return prev
